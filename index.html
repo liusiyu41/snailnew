@@ -1,0 +1,4420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>【螃蟹是也的蜗牛地图】</title>
+    <script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script>
+        window._AMapSecurityConfig = {
+            securityJsCode: 'a4d0b6007908ab8cfb6d9515a24a373b'
+        };
+    </script>
+    <script src="https://webapi.amap.com/maps?v=2.0&key=91064171af4a2207dbdb6dfd9d38f8c5&plugin=AMap.Geocoder,AMap.AutoComplete,AMap.PlaceSearch"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* 莫兰迪绿色系（冷调不偏黄） */
+            --moss-50: #F5F7F5;
+            --moss-100: #E8F0E9;
+            --moss-200: #D1DDD4;
+            --moss-300: #A7BDAE;
+            --moss-400: #7D9E88;
+            --moss-500: #5A7D66;
+            --moss-600: #4A6755;
+            --moss-700: #3D5A45;
+            --moss-800: #2F4836;
+            --moss-900: #233829;
+            /* 极简灰阶 */
+            --white: #FFFFFF;
+            --off-white: #FAFBFA;
+            --gray-50: #F9FAFB;
+            --gray-100: #F3F4F4;
+            --gray-200: #E5E7E7;
+            --gray-300: #D1D5D5;
+            --gray-400: #9CA4A0;
+            --gray-500: #6B7470;
+            --gray-600: #4B5552;
+            --gray-700: #37413F;
+            --gray-750: #2B3533;
+            --gray-800: #1F2927;
+            --red-500: #D4636F;
+            --red-600: #C14B57;
+            /* 极简圆角 */
+            --radius-sm: 4px;
+            --radius: 6px;
+            --radius-lg: 8px;
+            /* 极淡阴影 */
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --tab-height: 60px;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            font-size: 16px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+            background: var(--off-white);
+            color: var(--gray-700);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .app-header {
+            background: var(--moss-700);
+            color: var(--white);
+            padding: 16px 20px 12px 20px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid var(--moss-800);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .app-header h1 {
+            font-size: 1.15rem;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+            margin: 0;
+            color: var(--white);
+        }
+
+        .app-header .subtitle {
+            font-size: 0.8rem;
+            font-weight: 300;
+            color: rgba(255, 255, 255, 0.85);
+            margin: 0;
+            letter-spacing: 0.02em;
+        }
+
+        .page {
+            display: none;
+            padding: 12px 16px calc(var(--tab-height) + 16px) 16px;
+            max-width: 600px;
+            margin: 0 auto;
+            min-height: calc(100vh - 60px - var(--tab-height));
+        }
+
+        .page.active {
+            display: block;
+            animation: pageEnter 0.25s ease-out;
+        }
+
+        @keyframes pageEnter {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Tab Bar */
+        .tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: var(--tab-height);
+            background: #FFFFFF;
+            display: flex;
+            border-top: 1px solid #D1D5D5;
+            z-index: 1000;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .tab-item {
+            width: calc(100% / 4);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            color: #9CA4A0;
+            font-size: 12px;
+            line-height: 1.2;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-weight: 400;
+            padding: 0;
+            margin: 0;
+        }
+
+        .tab-item.active {
+            color: var(--moss-600);
+        }
+
+        .tab-item svg {
+            width: 22px;
+            height: 22px;
+            display: block;
+            flex-shrink: 0;
+        }
+
+        /* Form */
+        .form-group {
+            margin-bottom: 14px;
+        }
+        .form-group-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        
+        .form-group-half {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .form-group label,
+        .form-group-half label {
+            display: block;
+            font-size: 0.8rem !important;
+            font-weight: 400 !important;
+            color: var(--gray-600) !important;
+            margin-bottom: 6px;
+        }
+
+        .form-group label .required {
+            color: var(--red-500);
+            margin-left: 2px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+            background: var(--white);
+            color: var(--gray-700);
+            font-weight: 300;
+        }
+
+        .form-input:focus {
+            border-color: var(--moss-400);
+        }
+
+        .form-input::placeholder {
+            color: var(--gray-400);
+            font-weight: 300;
+        }
+
+        /* Image Upload */
+        .image-upload-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .image-preview-item {
+            width: 75px;
+            height: 75px;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            position: relative;
+            border: 1px solid var(--gray-200);
+            flex-shrink: 0;
+            cursor: grab;
+        }
+        
+        .image-preview-item:active {
+            cursor: grabbing;
+        }
+        
+        .image-preview-item.dragging {
+            opacity: 0.5;
+            border-color: var(--moss-400);
+        }
+
+        .image-preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .image-preview-item .remove-btn {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .image-upload-trigger {
+            width: 75px;
+            height: 75px;
+            border: 1px dashed var(--gray-300);
+            border-radius: var(--radius-sm);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--gray-400);
+            transition: border-color 0.2s, color 0.2s;
+            flex-shrink: 0;
+            background: var(--white);
+        }
+
+        .image-upload-trigger:hover {
+            border-color: var(--moss-400);
+            color: var(--moss-600);
+        }
+
+        .image-upload-trigger svg {
+            width: 20px;
+            height: 20px;
+            margin-bottom: 2px;
+        }
+
+        .image-upload-trigger span {
+            font-size: 0.65rem;
+        }
+
+        .image-upload-hint {
+            font-size: 0.75rem;
+            color: var(--gray-400);
+            margin-top: 6px;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 11px 24px;
+            min-height: 40px;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 0.9rem;
+            font-weight: 400;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+            width: 100%;
+            letter-spacing: 0.3px;
+        }
+
+        .btn-primary {
+            background: var(--moss-600);
+            color: var(--white);
+        }
+
+        .btn-primary:hover {
+            background: var(--moss-700);
+        }
+
+        .btn-primary:active {
+            background: var(--moss-800);
+        }
+
+        .btn-danger {
+            background: var(--white);
+            color: var(--red-500);
+            border: 1px solid var(--red-500);
+        }
+
+        .btn-danger:hover {
+            background: var(--red-500);
+            color: var(--white);
+        }
+
+        .btn-back {
+            background: var(--white);
+            color: var(--gray-600);
+            border: 1px solid var(--gray-200);
+            width: auto;
+            padding: 8px 16px;
+        }
+
+        .map-search-bar {
+            position: absolute;
+            top: 60px; /* 避开app-header的高度 */
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: var(--white);
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 40px 10px 14px;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+            background: var(--off-white);
+            font-weight: 300;
+            min-height: 40px;
+            box-sizing: border-box;
+        }
+
+        .search-input:focus {
+            border-color: var(--moss-400);
+            background: var(--white);
+        }
+
+        .map-search-bar .search-input {
+            background: var(--white);
+            border-color: var(--gray-200);
+        }
+
+        .map-search-bar .search-input:focus {
+            border-color: var(--moss-400);
+        }
+
+        .search-clear-btn {
+            position: absolute;
+            right: 28px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: var(--gray-200);
+            color: var(--gray-600);
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .search-clear-btn:hover {
+            background: var(--gray-300);
+        }
+
+        .map-search-bar .search-clear-btn {
+            background: rgba(0,0,0,0.15);
+            color: var(--white);
+            right: 28px;
+        }
+
+        .map-search-bar .search-clear-btn:hover {
+            background: rgba(0,0,0,0.25);
+        }
+
+        #list-page .search-clear-btn {
+            right: 28px;
+        }
+
+        /* Cards */
+        .card-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .card {
+            background: var(--white);
+            border-radius: var(--radius);
+            overflow: hidden;
+            border: 1px solid var(--gray-100);
+            cursor: pointer;
+            transition: border-color 0.2s;
+            display: flex;
+            gap: 12px;
+            padding: 10px;
+        }
+
+        .card:active {
+            border-color: var(--moss-200);
+        }
+
+        .card:hover {
+            border-color: var(--moss-300);
+        }
+
+        .card-thumb {
+            width: 68px;
+            height: 68px;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            flex-shrink: 0;
+            background: var(--gray-50);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray-300);
+        }
+
+        .card-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .card-thumb-placeholder svg {
+            width: 24px;
+            height: 24px;
+            color: var(--gray-300);
+        }
+
+        .card-info {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 3px;
+        }
+
+        .card-chinese-name {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--gray-800);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-family: inherit;
+        }
+
+        .card-latin-name {
+            font-size: 0.8rem;
+            font-weight: 300;
+            color: var(--gray-500);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-family: inherit;
+            font-style: italic;
+        }
+
+        .card-meta {
+            font-size: 0.75rem;
+            color: var(--gray-400);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .card-arrow {
+            display: flex;
+            align-items: center;
+            color: var(--gray-300);
+            flex-shrink: 0;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray-400);
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: 0.4;
+        }
+
+        .empty-state p {
+            font-size: 0.95rem;
+        }
+
+        /* Detail Page */
+        .detail-section {
+            margin-bottom: 16px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .detail-section:last-of-type {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .detail-label {
+            font-size: 0.8rem;
+            font-weight: 400;
+            color: var(--gray-600);
+            margin-bottom: 6px;
+            letter-spacing: 0.02em;
+        }
+
+        .detail-value {
+            font-size: 0.95rem;
+            color: var(--gray-700);
+            font-weight: 300;
+            line-height: 1.5;
+        }
+
+        .detail-value.large {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: var(--moss-800);
+        }
+
+        .detail-images {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+
+        .detail-image {
+            aspect-ratio: 1;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            background: var(--gray-50);
+            cursor: pointer;
+            transition: opacity 0.2s;
+            border: 1px solid var(--gray-100);
+        }
+
+        .detail-image:active {
+            opacity: 0.8;
+        }
+
+        .detail-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .detail-actions {
+            display: flex;
+            gap: 10px;
+            padding-top: 8px;
+        }
+
+        /* Image Viewer Overlay */
+        .image-viewer {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.92);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .image-viewer.active {
+            display: flex;
+        }
+
+        .image-viewer img {
+            max-width: 95vw;
+            max-height: 85vh;
+            object-fit: contain;
+            border-radius: 4px;
+        }
+
+        .image-viewer .close-viewer {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--gray-800);
+            color: white;
+            padding: 10px 24px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            z-index: 300;
+            animation: toastIn 0.3s ease-out;
+            pointer-events: none;
+        }
+
+        @keyframes toastIn {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        /* Location Picker */
+        .location-row {
+            display: flex;
+            gap: 8px;
+            align-items: stretch;
+        }
+
+        .location-row .form-input {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .btn-map-picker {
+            width: 48px;
+            min-width: 48px;
+            min-height: 42px;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-sm);
+            background: var(--white);
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: border-color 0.2s, background 0.2s;
+            flex-shrink: 0;
+        }
+
+        .btn-map-picker:hover {
+            border-color: var(--moss-400);
+            background: var(--moss-50);
+        }
+
+        .btn-map-picker:active {
+            background: var(--moss-100);
+        }
+
+        /* Map Modal */
+        .map-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 250;
+            background: var(--white);
+            flex-direction: column;
+        }
+
+        .map-modal.active {
+            display: flex;
+        }
+
+        .map-modal-header {
+            display: flex;
+            flex-direction: column;
+            padding: 10px 16px;
+            background: var(--white);
+            color: var(--gray-800);
+            flex-shrink: 0;
+            gap: 8px;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .map-modal-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 500;
+            font-size: 0.95rem;
+            color: var(--moss-700);
+        }
+
+        .map-search-row {
+            position: relative;
+        }
+
+        .map-search-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            outline: none;
+            background: rgba(255, 255, 255, 0.95);
+            color: var(--gray-800);
+        }
+
+        .map-search-input::placeholder {
+            color: var(--gray-400);
+        }
+
+        .map-search-results {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--white);
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 10;
+            color: var(--gray-800);
+        }
+
+        .map-search-results.active {
+            display: block;
+        }
+
+        .map-search-result-item {
+            padding: 10px 14px;
+            font-size: 0.85rem;
+            color: var(--gray-700);
+            cursor: pointer;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .map-search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .map-search-result-item:hover,
+        .map-search-result-item.active {
+            background: var(--moss-50);
+        }
+
+        .map-search-result-item .result-name {
+            font-weight: 500;
+            color: var(--gray-800);
+        }
+
+        .map-search-result-item .result-addr {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            margin-top: 2px;
+            font-weight: 300;
+        }
+
+        .map-modal-close {
+            width: 30px;
+            height: 30px;
+            border-radius: var(--radius-sm);
+            background: var(--gray-100);
+            color: var(--gray-700);
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .map-container {
+            flex: 1;
+            min-height: 0;
+            width: 100%;
+            height: calc(100vh - 118px);
+            background: #333;
+        }
+
+        .map-hint {
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            padding: 8px 16px;
+            flex-shrink: 0;
+            background: var(--gray-50);
+            font-weight: 300;
+        }
+
+        #map-page {
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: none !important;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: var(--tab-height);
+            z-index: 1;
+            background: #1a1a1a;
+            width: 100vw;
+            height: calc(100vh - var(--tab-height));
+        }
+
+        .map-page-search {
+            position: absolute;
+            top: 80px;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: #F0F2F1;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--gray-100);
+            display: flex;
+            align-items: center;
+        }
+
+        .search-box {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: var(--white);
+            width: min(100%, 600px);
+            margin: -12px auto 12px auto;
+            border-bottom: 1px solid var(--gray-100);
+        }
+        
+        .search-box-inner {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Filter Dropdown */
+        .filter-dropdown-wrapper {
+            position: relative;
+        }
+
+        .filter-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            width: 260px;
+            background: var(--white);
+            border: 1px solid var(--gray-100);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            z-index: 300;
+            margin-top: 6px;
+            max-height: 300px;
+            overflow: hidden;
+            flex-direction: column;
+        }
+
+        .filter-dropdown.active {
+            display: flex;
+        }
+
+        .filter-dropdown-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--gray-100);
+            font-weight: 500;
+            font-size: 0.9rem;
+            color: var(--moss-700);
+        }
+
+        .filter-dropdown-close {
+            width: 24px;
+            height: 24px;
+            border-radius: var(--radius-sm);
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            color: var(--gray-500);
+        }
+
+        .filter-dropdown-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 12px;
+        }
+
+        .filter-dropdown-footer {
+            padding: 8px 12px;
+            border-top: 1px solid var(--gray-100);
+            display: flex;
+            gap: 8px;
+        }
+
+        .filter-dropdown-footer .btn {
+            flex: 1;
+            padding: 7px 12px;
+            font-size: 0.85rem;
+            min-height: 36px;
+        }
+
+        .filter-family {
+            margin-bottom: 4px;
+        }
+
+        .filter-family-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 0;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.85rem;
+            color: var(--gray-700);
+        }
+
+        .filter-family-toggle {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+            font-size: 0.8rem;
+            color: var(--gray-400);
+        }
+
+        .filter-family-toggle.expanded {
+            transform: rotate(90deg);
+        }
+
+        .filter-genus-list {
+            margin-left: 26px;
+            display: none;
+        }
+
+        .filter-genus-list.expanded {
+            display: block;
+        }
+
+        .filter-genus-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 0;
+            font-size: 0.8rem;
+        }
+
+        .map-search-input {
+            width: 100%;
+            padding: 10px 40px 10px 12px;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 0.9rem;
+            outline: none;
+            background: white;
+            transition: border-color 0.2s;
+            font-weight: 300;
+        }
+
+        .map-search-input:focus {
+            border-color: var(--moss-400);
+        }
+
+        .map-search-clear {
+            position: absolute;
+            right: 28px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: var(--gray-100);
+            color: var(--gray-500);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .map-page-map {
+            width: 100%;
+            height: 100%;
+        }
+
+        #record-map {
+            border-radius: 0;
+            width: 100%;
+            height: 100%;
+            padding-top: 136px;
+            padding-bottom: 120px;
+            box-sizing: border-box;
+        }
+
+        .amap-info-content {
+            padding: 0 !important;
+        }
+
+        .amap-info {
+            border-radius: 12px !important;
+            overflow: visible !important;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        
+        .amap-info-close {
+            display: none !important;
+        }
+
+        .amap-info-sharp {
+            z-index: 1;
+        }
+
+        .map-info-window {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 90px;
+            cursor: pointer;
+        }
+
+        .map-info-thumb-wrap {
+            width: 90px;
+            height: 120px;
+            background: var(--gray-100);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0;
+            overflow: hidden;
+        }
+
+        .map-info-thumb {
+            width: 90px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 0;
+        }
+
+        .map-info-placeholder {
+            font-size: 32px;
+            color: var(--gray-400);
+        }
+
+        .map-info-loading {
+            width: 90px;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--gray-100);
+            border-radius: 0;
+            font-size: 24px;
+        }
+
+        .map-info-name {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--gray-800);
+            text-align: center;
+            padding: 6px 10px;
+            width: 90px;
+            box-sizing: border-box;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            background: #fff;
+            border-radius: 0 0 8px 8px;
+        }
+
+        /* Confirm Dialog */
+        .confirm-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 280;
+            background: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .confirm-overlay.active {
+            display: flex;
+        }
+
+        .confirm-dialog {
+            background: var(--white);
+            border-radius: var(--radius);
+            padding: 24px 20px 18px 20px;
+            max-width: 320px;
+            width: calc(100vw - 48px);
+            box-shadow: var(--shadow-lg);
+            text-align: center;
+            border: 1px solid var(--gray-100);
+        }
+
+        .confirm-dialog p {
+            font-size: 0.9rem;
+            color: var(--gray-700);
+            margin-bottom: 18px;
+            line-height: 1.5;
+            font-weight: 300;
+        }
+
+        .confirm-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .confirm-actions .btn {
+            flex: 1;
+            padding: 9px 18px;
+            min-height: 40px;
+        }
+
+        .btn-confirm-no {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        .btn-confirm-no:hover {
+            background: var(--gray-200);
+        }
+
+        .btn-confirm-yes {
+            background: var(--moss-600);
+            color: var(--white);
+        }
+
+        .btn-confirm-yes:hover {
+            background: var(--moss-700);
+        }
+
+        @media (max-width: 480px) {
+            .app-header {
+                padding: 14px 16px;
+            }
+
+            .app-header h1 {
+                font-size: 1.15rem;
+            }
+
+            .app-header .snail-icon svg {
+                width: 30px;
+                height: 30px;
+            }
+
+            .page {
+                padding: 12px 10px calc(var(--tab-height) + 20px) 10px;
+            }
+
+            .card {
+                padding: 10px;
+                gap: 10px;
+            }
+
+            .card-thumb {
+                width: 60px;
+                height: 60px;
+            }
+
+            .card-title {
+                font-size: 0.95rem;
+            }
+
+            .card-meta {
+                font-size: 0.75rem;
+            }
+
+            .detail-images {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 6px;
+            }
+
+            .detail-value.large {
+                font-size: 1.15rem;
+            }
+
+            .btn-back {
+                width: auto;
+                padding: 10px 16px;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .page {
+                padding: 24px 20px calc(var(--tab-height) + 28px) 20px;
+            }
+
+            .detail-images {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 12px;
+            }
+        }
+
+        /* Stats Page */
+        #stats-page {
+            padding: 6px 8px calc(var(--tab-height) + 8px) 8px;
+            max-width: none;
+            width: 100%;
+            flex-direction: column;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        #stats-page.active {
+            display: flex;
+        }
+
+        .stats-header {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            margin-bottom: 4px;
+            gap: 8px;
+        }
+
+        .stats-cards {
+            position: absolute;
+            left: 10px;
+            top: 10px;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .stat-card {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(255, 255, 255, 0.92);
+            border-radius: 6px;
+            padding: 4px 10px;
+            border: 1px solid var(--gray-100);
+            white-space: nowrap;
+        }
+
+        .stat-value {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--moss-600);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+        }
+
+        .btn-back {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: var(--white);
+            border: 1px solid var(--gray-200);
+            border-radius: 6px;
+            color: var(--moss-700);
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-back:hover {
+            background: var(--gray-50);
+        }
+
+        .stats-map-container {
+            max-width: 100%;
+            width: 100%;
+            margin: 0;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stats-map-wrapper {
+            position: relative;
+            background: var(--white);
+            border-radius: var(--radius);
+            border: 1px solid var(--gray-100);
+            overflow: hidden;
+            width: 100%;
+            flex: 1;
+        }
+
+        #stats-echarts {
+            width: 100%;
+            height: 100%;
+            min-height: 450px;
+        }
+
+        @media (max-width: 480px) {
+            #stats-page {
+                padding: 4px 6px calc(var(--tab-height) + 6px) 6px;
+            }
+            
+            #stats-echarts {
+                min-height: 400px;
+            }
+        }
+            
+            .stats-legend {
+                gap: 10px;
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-header">
+        <h1>螃蟹是也的蜗牛地图</h1>
+        <p class="subtitle">中国本土蜗牛私人数据库</p>
+    </div>
+
+    <!-- Add Page -->
+    <div class="page active" id="add-page">
+        <form id="add-form" autocomplete="off">
+            <div class="form-group">
+                <label>中文名 <span class="required">*</span></label>
+                <input class="form-input" type="text" id="input-chinese-name" placeholder="请输入蜗牛中文名" required>
+            </div>
+            <div class="form-group">
+                <label>拉丁名</label>
+                <input class="form-input" type="text" id="input-latin-name" placeholder="请输入拉丁学名（选填）">
+            </div>
+            <div class="form-group-row">
+                <div class="form-group-half">
+                    <label>纲</label>
+                    <input class="form-input" type="text" id="input-phylum" placeholder="请输入纲" value="腹足纲">
+                </div>
+                <div class="form-group-half">
+                    <label>目</label>
+                    <input class="form-input" type="text" id="input-order" placeholder="请输入目">
+                </div>
+            </div>
+            <div class="form-group-row">
+                <div class="form-group-half">
+                    <label>科</label>
+                    <input class="form-input" type="text" id="input-species" placeholder="请输入科">
+                </div>
+                <div class="form-group-half">
+                    <label>属</label>
+                    <input class="form-input" type="text" id="input-genus" placeholder="请输入属">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>采集地点</label>
+                <div class="location-row">
+                    <input class="form-input" type="text" id="input-location" placeholder="请输入采集地点">
+                    <button type="button" class="btn-map-picker" id="btn-map-picker" title="在地图上选点">📍</button>
+                </div>
+                <input type="hidden" id="input-lat">
+                <input type="hidden" id="input-lng">
+            </div>
+            <div class="form-group">
+                <label>采集时间</label>
+                <input class="form-input" type="date" id="input-time">
+            </div>
+            <div class="form-group">
+                <label>属性分类 <span class="required">*</span></label>
+                <select class="form-input" id="input-ecology-type" required>
+                    <option value="淡水">淡水</option>
+                    <option value="陆贝" selected>陆贝</option>
+                    <option value="化石">化石</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>图片（最多9张）</label>
+                <div class="image-upload-area" id="image-upload-area">
+                    <label class="image-upload-trigger" id="image-upload-trigger">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <path d="M21 15l-5-5L5 21"/>
+                        </svg>
+                        <span>添加图片</span>
+                    </label>
+                </div>
+                <input type="file" id="image-input" accept="image/*" multiple style="display:none">
+                <p class="image-upload-hint">支持 JPG/PNG，自动压缩至长边 1024px</p>
+            </div>
+            <button type="submit" class="btn btn-primary" style="margin-top:8px">保存记录</button>
+        </form>
+    </div>
+
+    <!-- List Page -->
+    <div class="page" id="list-page">
+        <div class="search-box" id="list-search-box">
+            <div class="search-box-inner">
+                <input type="text" class="search-input" id="list-search-input" placeholder="搜索中文名、拉丁名、采集地点、纲、目、属、科..." style="flex: 1;">
+                <div class="filter-dropdown-wrapper">
+                    <button class="btn btn-primary" id="list-filter-btn" style="width: 80px; padding: 0 12px;">筛选</button>
+                    <div class="filter-dropdown" id="list-filter-dropdown">
+                        <div class="filter-dropdown-header">
+                            <span>科属筛选</span>
+                            <button class="filter-dropdown-close" id="list-filter-close">&times;</button>
+                        </div>
+                        <div class="filter-dropdown-body" id="list-filter-tree">
+                        </div>
+                        <div class="filter-dropdown-footer">
+                            <button class="btn btn-back" id="list-filter-clear">清除</button>
+                            <button class="btn btn-primary" id="list-filter-apply">确认</button>
+                        </div>
+                    </div>
+                </div>
+                <button class="search-clear-btn" id="list-search-clear" style="display:none;">&times;</button>
+            </div>
+        </div>
+        <div class="card-list" id="card-list"></div>
+        <div class="empty-state" id="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6m-3-3v6m-9 4V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+            <p>暂无记录，去录入吧</p>
+        </div>
+    </div>
+
+    <!-- Detail Page -->
+    <div class="page" id="detail-page">
+        <button class="btn btn-back" id="btn-back" style="margin-bottom:16px">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+            <span id="btn-back-text">返回列表</span>
+        </button>
+        <div id="detail-content"></div>
+    </div>
+
+    <!-- Species Records Page -->
+    <div class="page" id="species-page">
+        <button class="btn btn-back" id="btn-species-back" style="margin-bottom:16px">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+            <span>返回物种列表</span>
+        </button>
+        <div id="species-title" style="margin-bottom:14px;font-weight:500;font-size:1.15rem;color:var(--moss-800);"></div>
+        <div class="card-list" id="species-card-list"></div>
+        <div class="empty-state" id="species-empty-state" style="display:none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6m-3-3v6m-9 4V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+            <p>暂无记录</p>
+        </div>
+    </div>
+
+    <!-- Map Page -->
+    <div class="page" id="map-page">
+        <div class="map-page-search" style="gap: 10px; align-items: stretch;">
+            <input type="text" class="map-search-input" id="map-search-input" placeholder="搜索中文名、拉丁名、采集地点、纲、目、属、科..." style="flex: 1;">
+            <div class="filter-dropdown-wrapper" style="display: flex; align-items: center;">
+                <button class="btn btn-primary" id="map-filter-btn" style="width: 80px; padding: 0 12px;">筛选</button>
+                <div class="filter-dropdown" id="map-filter-dropdown">
+                    <div class="filter-dropdown-header">
+                        <span>科属筛选</span>
+                        <button class="filter-dropdown-close" id="map-filter-close">&times;</button>
+                    </div>
+                    <div class="filter-dropdown-body" id="map-filter-tree">
+                    </div>
+                    <div class="filter-dropdown-footer">
+                        <button class="btn btn-back" id="map-filter-clear">清除</button>
+                        <button class="btn btn-primary" id="map-filter-apply">确认</button>
+                    </div>
+                </div>
+            </div>
+            <button class="map-search-clear" id="map-search-clear" style="display:none;">&times;</button>
+        </div>
+        <div class="map-page-map">
+            <div id="record-map"></div>
+        </div>
+    </div>
+
+    <!-- Image Viewer -->
+    <div class="image-viewer" id="image-viewer">
+        <button class="close-viewer" id="close-viewer">&times;</button>
+        <img id="viewer-img" src="" alt="预览">
+    </div>
+
+    <!-- Map Modal -->
+    <div class="map-modal" id="map-modal">
+        <div class="map-modal-header">
+            <div class="map-modal-top">
+                <span>在地图上选择采集地点</span>
+                <button class="map-modal-close" id="map-modal-close">&times;</button>
+            </div>
+            <div class="map-search-row" style="display: flex; gap: 8px;">
+                <input class="map-search-input" id="picker-search-input" type="text" placeholder="搜索地点..." autocomplete="off" style="flex: 1;">
+                <button type="button" class="btn btn-primary" id="picker-search-btn" style="width: auto; padding: 8px 16px;">搜索</button>
+                <div class="map-search-results" id="picker-search-results" style="left: 0; right: 0;"></div>
+            </div>
+        </div>
+        <div class="map-container" id="map-container"></div>
+        <p class="map-hint">点击地图上的位置进行选择</p>
+    </div>
+
+    <!-- Stats Page -->
+    <div class="page" id="stats-page">
+        <div class="stats-header">
+            <button id="stats-back-btn" class="btn btn-back" style="display: none;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+                    <span>返回全国</span>
+            </button>
+        </div>
+        
+        <div class="stats-map-container">
+            <div class="stats-map-wrapper">
+                <div class="stats-cards">
+                    <div class="stat-card">
+                        <span class="stat-label">总物种数：</span>
+                        <span class="stat-value" id="stats-total-species">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">总记录数：</span>
+                        <span class="stat-value" id="stats-total-records">0</span>
+                    </div>
+                </div>
+                <div id="stats-echarts" style="width: 100%;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Dialog -->
+    <div class="confirm-overlay" id="confirm-overlay">
+        <div class="confirm-dialog">
+            <p id="confirm-message"></p>
+            <div class="confirm-actions">
+                <button class="btn btn-confirm-no" id="btn-confirm-no">否</button>
+                <button class="btn btn-confirm-yes" id="btn-confirm-yes">是</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Tab Bar -->
+    <nav class="tab-bar">
+        <button class="tab-item active" data-page="add-page">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="9"/>
+                <path d="M12 8v8m-4-4h8"/>
+            </svg>
+            <span>录入</span>
+        </button>
+        <button class="tab-item" data-page="list-page">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7" rx="1"/>
+                <rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="3" y="14" width="7" height="7" rx="1"/>
+                <rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+            <span>列表</span>
+        </button>
+        <button class="tab-item" data-page="map-page">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
+                <line x1="8" y1="2" x2="8" y2="18"/>
+                <line x1="16" y1="6" x2="16" y2="22"/>
+            </svg>
+            <span>地图</span>
+        </button>
+        <button class="tab-item" data-page="stats-page">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7" rx="1"/>
+                <rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="3" y="14" width="7" height="7" rx="1"/>
+                <rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+            <span>统计</span>
+        </button>
+    </nav>
+
+    <script>
+    (function() {
+        var STORAGE_KEY = 'snail_db_records';
+        var MAX_IMAGES = 9;
+        var MAX_LONG_SIDE = 1024;
+        var COMPRESS_QUALITY = 0.7;
+
+        var imageStore = localforage.createInstance({ name: 'snail_db_images' });
+
+        var pages = {
+            'add-page': document.getElementById('add-page'),
+            'list-page': document.getElementById('list-page'),
+            'detail-page': document.getElementById('detail-page'),
+            'map-page': document.getElementById('map-page'),
+            'species-page': document.getElementById('species-page'),
+            'stats-page': document.getElementById('stats-page')
+        };
+
+        var currentRecord = null;
+        var pendingImages = []; // File objects for new entry
+        var pendingLat = null;
+        var pendingLng = null;
+        var lastPage = null; // 记录从哪个页面进入详情页
+        var currentInfoWindow = null; // 记录当前打开的信息窗
+        var listSearchKeyword = ''; // 列表页搜索关键词
+        var mapSearchKeyword = ''; // 地图页搜索关键词
+        var currentSpecies = null; // 当前查看的物种
+        var selectedFilters = {
+            families: new Set(),
+            genuses: new Set()
+        };
+        var isFilterActive = false; // 筛选是否生效
+        var expandedFamilies = new Set(); // 记录展开的科
+
+        // 搜索筛选函数
+        // 提取物种key（括号外的名称）
+        function getSpeciesKey(name) {
+            if (!name) return '';
+            var bracketIndex = name.indexOf('（');
+            if (bracketIndex === -1) {
+                bracketIndex = name.indexOf('(');
+            }
+            if (bracketIndex !== -1) {
+                return name.substring(0, bracketIndex).trim();
+            }
+            return name.trim();
+        }
+
+        // 按物种聚合记录
+        function aggregateBySpecies(records) {
+            var speciesMap = {};
+            records.forEach(function(record) {
+                var speciesKey = getSpeciesKey(record.chineseName);
+                if (!speciesMap[speciesKey]) {
+                    speciesMap[speciesKey] = {
+                        key: speciesKey,
+                        chineseName: record.chineseName,
+                        latinName: record.latinName,
+                        records: []
+                    };
+                }
+                speciesMap[speciesKey].records.push(record);
+            });
+            return Object.values(speciesMap);
+        }
+
+        function filterRecords(records, keyword) {
+            if (!keyword || keyword.trim() === '') {
+                return records;
+            }
+            var lowerKeyword = keyword.toLowerCase().trim();
+            return records.filter(function(record) {
+                return (record.chineseName && record.chineseName.toLowerCase().indexOf(lowerKeyword) !== -1) ||
+                       (record.latinName && record.latinName.toLowerCase().indexOf(lowerKeyword) !== -1) ||
+                       (record.location && record.location.toLowerCase().indexOf(lowerKeyword) !== -1) ||
+                       (record.phylum && record.phylum.toLowerCase().indexOf(lowerKeyword) !== -1) ||
+                       (record.order && record.order.toLowerCase().indexOf(lowerKeyword) !== -1) ||
+                       (record.genus && record.genus.toLowerCase().indexOf(lowerKeyword) !== -1) ||
+                       (record.species && record.species.toLowerCase().indexOf(lowerKeyword) !== -1);
+            });
+        }
+
+        // IndexedDB 存储实例（主存储）
+        var recordStore = localforage.createInstance({ name: 'snail_db_records' });
+        
+        // 数据已迁移标志
+        var MIGRATION_FLAG = 'snail_db_migrated_to_indexeddb';
+        
+        // 零风险双存储系统：优先使用 IndexedDB，同时保留 localStorage 作为备份
+        
+        // 从存储加载记录（优先 IndexedDB，降级到 localStorage）
+        async function loadRecords() {
+            try {
+                // 首先尝试从 IndexedDB 读取
+                var records = await recordStore.getItem('records');
+                if (records && Array.isArray(records)) {
+                    return records;
+                }
+                
+                // IndexedDB 没有数据，尝试从 localStorage 读取并迁移
+                var localData = localStorage.getItem(STORAGE_KEY);
+                if (localData) {
+                    var localRecords = JSON.parse(localData);
+                    if (Array.isArray(localRecords)) {
+                        // 自动迁移到 IndexedDB
+                        await recordStore.setItem('records', localRecords);
+                        localStorage.setItem(MIGRATION_FLAG, '1');
+                        return localRecords;
+                    }
+                }
+                
+                return [];
+            } catch (e) {
+                console.error('loadRecords error:', e);
+                // IndexedDB 失败时降级到 localStorage
+                try {
+                    var data = localStorage.getItem(STORAGE_KEY);
+                    return data ? JSON.parse(data) : [];
+                } catch (e2) {
+                    return [];
+                }
+            }
+        }
+
+        // 保存记录（主存储为 IndexedDB，不强制备份到 localStorage）
+        async function saveRecords(records) {
+            try {
+                // 优先保存到 IndexedDB（主存储）
+                await recordStore.setItem('records', records);
+                // 尝试保存到 localStorage 作为备份，但如果失败（容量不足）也不影响
+                try {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+                } catch (localErr) {
+                    console.log('localStorage backup failed (likely quota exceeded), continuing with IndexedDB only');
+                    // 不抛出错误，因为 IndexedDB 已经成功保存
+                }
+            } catch (e) {
+                console.error('saveRecords error:', e);
+                // IndexedDB 失败时尝试降级到 localStorage
+                try {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+                } catch (localErr2) {
+                    // 如果两个存储都失败了，抛出原始错误
+                    throw e;
+                }
+            }
+        }
+
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
+        }
+
+        // Page switching
+        async function switchPage(pageName) {
+            Object.keys(pages).forEach(function(k) {
+                pages[k].classList.remove('active');
+            });
+            pages[pageName].classList.add('active');
+
+            document.querySelectorAll('.tab-item').forEach(function(tab) {
+                tab.classList.toggle('active', tab.dataset.page === pageName);
+            });
+
+            if (pageName === 'list-page') {
+                await renderList();
+            } else if (pageName === 'map-page') {
+                await initRecordMap();
+            }
+        }
+
+        // Map page variables
+        var recordMap = null;
+        var mapInitialized = false;
+        var currentMarkers = [];
+        var recordMarkersMap = {}; // 记录ID和对应标记的映射
+
+        // Initialize record map
+        async function initRecordMap() {
+            if (typeof AMap === 'undefined') {
+                return;
+            }
+
+            if (!mapInitialized) {
+                // 首次初始化地图
+                requestAnimationFrame(function() {
+                    requestAnimationFrame(async function() {
+                        try {
+                            var satellite = new AMap.TileLayer.Satellite();
+                            var roadNet = new AMap.TileLayer.RoadNet();
+
+                            recordMap = new AMap.Map('record-map', {
+                                zoom: 5,
+                                center: [100, 35],
+                                layers: [satellite, roadNet],
+                                isHotspot: false
+                            });
+
+                            mapInitialized = true;
+
+                            recordMap.on('complete', async function() {
+                                recordMap.resize();
+                                await loadMarkersToMap();
+                            });
+
+                            // 确保地图加载完成后再次调用 resize
+                            setTimeout(async function() {
+                                recordMap && recordMap.resize();
+                            }, 300);
+
+                            await loadMarkersToMap();
+                        } catch (e) {
+                            console.error('Map init error:', e);
+                        }
+                    });
+                });
+            } else {
+                // 地图已初始化，重新加载标记并调整大小
+                setTimeout(async function() {
+                    recordMap && recordMap.resize();
+                    await loadMarkersToMap();
+                }, 100);
+            }
+        }
+
+        // Load markers from records
+        async function loadMarkersToMap() {
+            if (!recordMap) return;
+
+            // 清除旧的标记
+            if (currentMarkers.length > 0) {
+                recordMap.remove(currentMarkers);
+                currentMarkers = [];
+            }
+            recordMarkersMap = {}; // 重置映射
+
+            var records = await loadRecords();
+            var validRecords = records.filter(function(r) {
+                return r.lat && r.lng;
+            });
+
+            // 应用搜索筛选和科属筛选
+            var filteredRecords = filterRecords(validRecords, mapSearchKeyword);
+            filteredRecords = filteredRecords.filter(matchesFilter);
+
+            if (filteredRecords.length === 0) {
+                recordMap.setZoomAndCenter(5, [100, 35]);
+                return;
+            }
+
+            var markerList = [];
+            var markerDataList = [];
+
+            filteredRecords.forEach(function(record) {
+                var markerData = createRecordMarker(record);
+                markerList.push(markerData.marker);
+                markerDataList.push(markerData);
+                recordMarkersMap[record.id] = markerData;
+            });
+
+            recordMap.add(markerList);
+            currentMarkers = markerList;
+
+            // 调整视野适应所有标记，防止被搜索框或Tab栏遮挡
+            if (markerList.length > 0) {
+                setTimeout(function() {
+                    recordMap.setFitView(markerList, true, [152, 30, 140, 30]);
+                }, 800);
+            }
+        }
+
+        // 更新地图标记显示（用于搜索筛选时动态更新）
+        async function updateMarkersBySearch() {
+            await loadMarkersToMap();
+        }
+
+        // Create marker for a record
+        function createRecordMarker(record) {
+            // 根据属性分类选择SVG图标颜色（自定义，不依赖外部图片）
+            var color = '#1e88e5'; // 蓝色-淡水
+            if (record.ecologyType === '陆贝') {
+                color = '#e53935'; // 红色
+            } else if (record.ecologyType === '化石') {
+                color = '#fdd835'; // 黄色
+            }
+            
+            // 画一个更精致的水滴形SVG标记（带阴影和圆角，无注释避免XML错误）
+            var svgContent = '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="40" viewBox="0 0 28 40">' +
+                '<defs><filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">' +
+                '<feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/></filter></defs>' +
+                '<path d="M14 0C6.268 0 0 6.268 0 14c0 3.866 1.51 7.353 4.193 10.323C6.837 27.22 10.957 31.7 14 40' +
+                'c3.043-8.3 7.163-12.78 9.807-15.677C26.49 21.353 28 17.866 28 14 28 6.268 21.732 0 14 0z"' +
+                ' fill="' + color + '" stroke="rgba(0,0,0,0.2)" stroke-width="1.5" filter="url(#shadow)"/>' +
+                '<ellipse cx="14" cy="10" rx="4" ry="5" fill="rgba(255,255,255,0.4)"/>' +
+                '</svg>';
+            
+            var iconUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgContent);
+            
+            var icon = new AMap.Icon({
+                image: iconUrl,
+                size: new AMap.Size(28, 40),
+                imageSize: new AMap.Size(28, 40),
+                anchor: new AMap.Pixel(14, 40)
+            });
+            
+            var marker = new AMap.Marker({
+                position: [record.lng, record.lat],
+                map: recordMap,
+                icon: icon,
+                offset: new AMap.Pixel(-10, -35)
+            });
+
+            var infoWindow = null;
+            var isMouseOverInfoWindow = false;
+            var isMouseOverMarker = false;
+            var hasAdjustedMap = false; // 防止重复移动标记
+
+            var closeInfoWindow = function() {
+                setTimeout(function() {
+                    if (!isMouseOverInfoWindow && !isMouseOverMarker) {
+                        if (infoWindow) {
+                            infoWindow.close();
+                            infoWindow = null;
+                        }
+                    }
+                }, 150);
+            };
+
+            var showInfoWindow = function(e) {
+                isMouseOverMarker = true;
+                hasAdjustedMap = false; // 重置标记
+                if (e && e.stopPropagation) {
+                    e.stopPropagation();
+                }
+
+                if (infoWindow) {
+                    infoWindow.close();
+                }
+
+                var content = createInfoWindowContent(record);
+
+                infoWindow = new AMap.InfoWindow({
+                    content: content,
+                    offset: new AMap.Pixel(4, -40),
+                    closeWhenClickMap: true,
+                    autoMove: false,
+                    closeButton: false
+                });
+
+                infoWindow.open(recordMap, marker.getPosition());
+
+                // 仅在信息窗被搜索框遮挡时才调整地图位置
+                setTimeout(function() {
+                    if (recordMap && !hasAdjustedMap) {
+                        hasAdjustedMap = true;
+                        // 获取所有弹窗元素，取最后一个（最新打开的）
+                        var infoWinEls = document.querySelectorAll('.amap-info');
+                        if (infoWinEls.length === 0) return;
+                        var infoWinEl = infoWinEls[infoWinEls.length - 1];
+                        
+                        // 检查弹窗是否可见（防止获取到正在关闭的弹窗）
+                        var isVisible = infoWinEl.offsetParent !== null;
+                        if (!isVisible) return;
+                        
+                        var infoWinRect = infoWinEl.getBoundingClientRect();
+                        var topBarHeight = 122; // 顶部栏（标题+搜索框）高度
+                        
+                        // 只检查信息窗顶部是否被搜索框遮挡
+                        if (infoWinRect.top < topBarHeight) {
+                            // 获取当前中心点
+                            var currentCenter = recordMap.getCenter();
+                            var centerPixel = recordMap.lngLatToContainer(currentCenter);
+                            
+                            // 计算需要移动的距离，刚好让信息窗完整露出，再加10px间距
+                            var offset = topBarHeight - infoWinRect.top + 10;
+                            // 正确的移动方向：centerPixel.y -= offset（地图向下移动，信息窗整体下移）
+                            centerPixel.y -= offset;
+                            
+                            var newCenter = recordMap.containerToLngLat(centerPixel);
+                            // 用丝滑缓慢的速度移动，600ms
+                            recordMap.panTo(newCenter, 600);
+                        }
+                    }
+                }, 500);
+
+                var imgKey = 'img_' + record.id + '_0';
+                var wrapEl = content.querySelector('.map-info-thumb-wrap');
+
+                imageStore.getItem(imgKey).then(function(imgData) {
+                    if (imgData && wrapEl) {
+                        var blob = new Blob([imgData], { type: 'image/jpeg' });
+                        var blobUrl = URL.createObjectURL(blob);
+
+                        var img = document.createElement('img');
+                        img.className = 'map-info-thumb';
+                        img.src = blobUrl;
+                        img.alt = record.chineseName || '缩略图';
+                        img.onload = function() {
+                            if (wrapEl) {
+                                wrapEl.innerHTML = '';
+                                wrapEl.appendChild(img);
+                            }
+                        };
+                        img.onerror = function() {
+                            if (wrapEl) {
+                                wrapEl.innerHTML = '<span class="map-info-placeholder">📷</span>';
+                            }
+                        };
+                    } else if (wrapEl) {
+                        wrapEl.innerHTML = '<span class="map-info-placeholder">📷</span>';
+                    }
+                }).catch(function() {
+                    if (wrapEl) {
+                        wrapEl.innerHTML = '<span class="map-info-placeholder">📷</span>';
+                    }
+                });
+
+                // 绑定点击事件 - 直接在 content 上绑定
+                content.onclick = function(ev) {
+                    ev.stopPropagation();
+                    ev.preventDefault();
+                    lastPage = 'map-page';
+                    currentInfoWindow = infoWindow;
+                    showDetail(record);
+                };
+
+                // 延迟查找 info window 外层并绑定鼠标事件
+                setTimeout(function() {
+                    var winOuter = document.querySelector('.amap-info');
+                    if (winOuter) {
+                        winOuter.style.cursor = 'pointer';
+                        
+                        winOuter.onclick = function(ev) {
+                            ev.stopPropagation();
+                            ev.preventDefault();
+                            lastPage = 'map-page';
+                            currentInfoWindow = infoWindow;
+                            showDetail(record);
+                        };
+                        
+                        winOuter.onmouseenter = function() {
+                            isMouseOverInfoWindow = true;
+                        };
+                        
+                        winOuter.onmouseleave = function() {
+                            isMouseOverInfoWindow = false;
+                            closeInfoWindow();
+                        };
+                    }
+                }, 50);
+            }
+
+            // 鼠标悬停显示信息窗
+            marker.on('mouseover', showInfoWindow);
+            marker.on('mouseout', function() {
+                isMouseOverMarker = false;
+                closeInfoWindow();
+            });
+            // 点击标记点也可以进入详情页
+            marker.on('click', function(e) {
+                e.stopPropagation();
+                lastPage = 'map-page';
+                currentInfoWindow = infoWindow;
+                showDetail(record);
+            });
+            marker.on('touchstart', showInfoWindow);
+
+            return {
+                marker: marker,
+                record: record,
+                showInfoWindow: showInfoWindow
+            };
+        }
+
+        // Create InfoWindow content HTML
+        function createInfoWindowContent(record) {
+            var container = document.createElement('div');
+            container.className = 'map-info-window';
+            container.style.cursor = 'pointer';
+
+            var wrap = document.createElement('div');
+            wrap.className = 'map-info-thumb-wrap';
+
+            var loading = document.createElement('div');
+            loading.className = 'map-info-loading';
+            loading.textContent = '⏳';
+            wrap.appendChild(loading);
+
+            var name = document.createElement('div');
+            name.className = 'map-info-name';
+            name.textContent = record.chineseName || '未知';
+
+            container.appendChild(wrap);
+            container.appendChild(name);
+
+            return container;
+        }
+
+
+
+        // Image compression
+        function compressImage(file) {
+            return new Promise(function(resolve, reject) {
+                var img = new Image();
+                var url = URL.createObjectURL(file);
+                img.onload = function() {
+                    URL.revokeObjectURL(url);
+                    var w = img.width;
+                    var h = img.height;
+                    if (w <= MAX_LONG_SIDE && h <= MAX_LONG_SIDE) {
+                        resolve(file);
+                        return;
+                    }
+                    var ratio = MAX_LONG_SIDE / Math.max(w, h);
+                    var canvas = document.createElement('canvas');
+                    canvas.width = Math.round(w * ratio);
+                    canvas.height = Math.round(h * ratio);
+                    var ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    canvas.toBlob(function(blob) {
+                        resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+                    }, 'image/jpeg', COMPRESS_QUALITY);
+                };
+                img.onerror = function() {
+                    URL.revokeObjectURL(url);
+                    reject(new Error('图片加载失败'));
+                };
+                img.src = url;
+            });
+        }
+
+        // Image upload handling
+        var imageUploadTrigger = document.getElementById('image-upload-trigger');
+        var imageInput = document.getElementById('image-input');
+        var imageUploadArea = document.getElementById('image-upload-area');
+
+        imageUploadTrigger.addEventListener('click', function() {
+            imageInput.click();
+        });
+
+        imageInput.addEventListener('change', async function() {
+            var files = Array.from(imageInput.files);
+            var available = MAX_IMAGES - pendingImages.length;
+            if (files.length > available) {
+                showToast('最多还能添加 ' + available + ' 张图片');
+                files = files.slice(0, available);
+            }
+            for (var i = 0; i < files.length; i++) {
+                try {
+                    var compressed = await compressImage(files[i]);
+                    pendingImages.push(compressed);
+                } catch (e) {
+                    showToast('图片处理失败');
+                }
+            }
+            imageInput.value = '';
+            renderImagePreviews();
+        });
+
+        function renderImagePreviews() {
+            var existing = imageUploadArea.querySelectorAll('.image-preview-item');
+            existing.forEach(function(el) { el.remove(); });
+
+            pendingImages.forEach(function(file, index) {
+                var item = document.createElement('div');
+                item.className = 'image-preview-item';
+                item.draggable = true;
+                item.dataset.index = index;
+                var img = document.createElement('img');
+                img.src = URL.createObjectURL(file);
+                var removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-btn';
+                removeBtn.innerHTML = '&times;';
+                removeBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    URL.revokeObjectURL(img.src);
+                    pendingImages.splice(index, 1);
+                    renderImagePreviews();
+                });
+                item.appendChild(img);
+                item.appendChild(removeBtn);
+                item.addEventListener('dragstart', handleDragStartAdd);
+                item.addEventListener('dragover', handleDragOver);
+                item.addEventListener('drop', handleDropAdd);
+                item.addEventListener('dragend', handleDragEnd);
+                imageUploadArea.insertBefore(item, imageUploadTrigger);
+            });
+
+            if (pendingImages.length >= MAX_IMAGES) {
+                imageUploadTrigger.style.display = 'none';
+            } else {
+                imageUploadTrigger.style.display = '';
+            }
+        }
+
+        // Save record
+        document.getElementById('add-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            var chineseName = document.getElementById('input-chinese-name').value.trim();
+            if (!chineseName) {
+                showToast('请输入中文名');
+                return;
+            }
+
+            var ecologyType = document.getElementById('input-ecology-type').value;
+            if (!ecologyType) {
+                showToast('请选择生态类型');
+                return;
+            }
+
+            var record = {
+                id: generateId(),
+                chineseName: chineseName,
+                latinName: document.getElementById('input-latin-name').value.trim(),
+                phylum: document.getElementById('input-phylum').value.trim(),
+                order: document.getElementById('input-order').value.trim(),
+                genus: document.getElementById('input-genus').value.trim(),
+                species: document.getElementById('input-species').value.trim(),
+                location: document.getElementById('input-location').value.trim(),
+                time: document.getElementById('input-time').value,
+                ecologyType: ecologyType,
+                lat: pendingLat || null,
+                lng: pendingLng || null,
+                imageCount: pendingImages.length,
+                createdAt: Date.now()
+            };
+
+            try {
+                // Save images to IndexedDB
+                for (var i = 0; i < pendingImages.length; i++) {
+                    var key = 'img_' + record.id + '_' + i;
+                    await imageStore.setItem(key, pendingImages[i]);
+                }
+
+                // Save text to storage (IndexedDB + localStorage)
+                var records = await loadRecords();
+                records.unshift(record);
+                await saveRecords(records);
+
+                // Clear form
+                document.getElementById('add-form').reset();
+                // 重置默认值
+                document.getElementById('input-phylum').value = '腹足纲';
+                document.getElementById('input-ecology-type').value = '陆贝';
+                pendingImages.forEach(function(f) {
+                    if (f._url) URL.revokeObjectURL(f._url);
+                });
+                pendingImages = [];
+                pendingLat = null;
+                pendingLng = null;
+                document.getElementById('input-lat').value = '';
+                document.getElementById('input-lng').value = '';
+                renderImagePreviews();
+
+                showToast('保存成功');
+            } catch (err) {
+                showToast('保存失败: ' + err.message);
+            }
+        });
+
+        // Render list - 聚合物种
+        async function renderList() {
+            var records = await loadRecords();
+            // 应用搜索筛选和科属筛选
+            var filteredRecords = filterRecords(records, listSearchKeyword);
+            filteredRecords = filteredRecords.filter(matchesFilter);
+            // 按物种聚合
+            var speciesList = aggregateBySpecies(filteredRecords);
+            var cardList = document.getElementById('card-list');
+            var emptyState = document.getElementById('empty-state');
+
+            cardList.innerHTML = '';
+
+            if (speciesList.length === 0) {
+                emptyState.style.display = '';
+                if (listSearchKeyword) {
+                    emptyState.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg><p>没有找到匹配的物种</p>';
+                } else {
+                    emptyState.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6m-3-3v6m-9 4V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg><p>暂无记录，去录入吧</p>';
+                }
+                return;
+            }
+
+            emptyState.style.display = 'none';
+
+            speciesList.forEach(async function(species) {
+                var card = document.createElement('div');
+                card.className = 'card';
+                card.addEventListener('click', async function() {
+                    lastPage = 'list-page';
+                    currentInfoWindow = null;
+                    await showSpeciesRecords(species);
+                });
+
+                var thumbDiv = document.createElement('div');
+                thumbDiv.className = 'card-thumb';
+
+                var infoDiv = document.createElement('div');
+                infoDiv.className = 'card-info';
+
+                var chineseNameDiv = document.createElement('div');
+                chineseNameDiv.className = 'card-chinese-name';
+                chineseNameDiv.textContent = species.chineseName;
+
+                var latinNameDiv = document.createElement('div');
+                latinNameDiv.className = 'card-latin-name';
+                latinNameDiv.textContent = species.latinName || '拉丁名待完善';
+
+                var metaDiv = document.createElement('div');
+                metaDiv.className = 'card-meta';
+                metaDiv.textContent = species.records.length + ' 条记录';
+
+                var arrowDiv = document.createElement('div');
+                arrowDiv.className = 'card-arrow';
+                arrowDiv.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>';
+
+                infoDiv.appendChild(chineseNameDiv);
+                infoDiv.appendChild(latinNameDiv);
+                infoDiv.appendChild(metaDiv);
+                card.appendChild(thumbDiv);
+                card.appendChild(infoDiv);
+                card.appendChild(arrowDiv);
+                cardList.appendChild(card);
+
+                // Load thumbnail - 使用该物种下第一条记录的首图
+                var firstRecord = species.records[0];
+                if (firstRecord && firstRecord.imageCount > 0) {
+                    try {
+                        var thumbData = await imageStore.getItem('img_' + firstRecord.id + '_0');
+                        if (thumbData) {
+                            var thumbImg = document.createElement('img');
+                            thumbImg.src = URL.createObjectURL(thumbData);
+                            thumbDiv.appendChild(thumbImg);
+                        } else {
+                            showPlaceholder(thumbDiv);
+                        }
+                    } catch (e) {
+                        showPlaceholder(thumbDiv);
+                    }
+                } else {
+                    showPlaceholder(thumbDiv);
+                }
+            });
+        }
+
+        // 渲染某个物种下的记录列表
+        function renderSpeciesRecords(species) {
+            var records = species.records;
+            var speciesCardList = document.getElementById('species-card-list');
+            var speciesEmptyState = document.getElementById('species-empty-state');
+            var speciesTitle = document.getElementById('species-title');
+
+            speciesTitle.textContent = species.chineseName + (species.latinName ? ' (' + species.latinName + ')' : '');
+            speciesCardList.innerHTML = '';
+
+            if (records.length === 0) {
+                speciesEmptyState.style.display = '';
+                return;
+            }
+
+            speciesEmptyState.style.display = 'none';
+
+            records.forEach(async function(record) {
+                var card = document.createElement('div');
+                card.className = 'card';
+                card.addEventListener('click', function() {
+                    lastPage = 'species-page';
+                    currentInfoWindow = null;
+                    showDetail(record);
+                });
+
+                var thumbDiv = document.createElement('div');
+                thumbDiv.className = 'card-thumb';
+
+                var infoDiv = document.createElement('div');
+                infoDiv.className = 'card-info';
+
+                var titleDiv = document.createElement('div');
+                titleDiv.className = 'card-title';
+                titleDiv.textContent = record.chineseName;
+
+                var metaDiv = document.createElement('div');
+                metaDiv.className = 'card-meta';
+                var metaParts = [];
+                if (record.location) metaParts.push(record.location);
+                if (record.time) metaParts.push(record.time);
+                metaDiv.textContent = metaParts.join(' · ') || '无详细信息';
+
+                var arrowDiv = document.createElement('div');
+                arrowDiv.className = 'card-arrow';
+                arrowDiv.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>';
+
+                infoDiv.appendChild(titleDiv);
+                infoDiv.appendChild(metaDiv);
+                card.appendChild(thumbDiv);
+                card.appendChild(infoDiv);
+                card.appendChild(arrowDiv);
+                speciesCardList.appendChild(card);
+
+                // Load thumbnail
+                if (record.imageCount > 0) {
+                    try {
+                        var thumbData = await imageStore.getItem('img_' + record.id + '_0');
+                        if (thumbData) {
+                            var thumbImg = document.createElement('img');
+                            thumbImg.src = URL.createObjectURL(thumbData);
+                            thumbDiv.appendChild(thumbImg);
+                        } else {
+                            showPlaceholder(thumbDiv);
+                        }
+                    } catch (e) {
+                        showPlaceholder(thumbDiv);
+                    }
+                } else {
+                    showPlaceholder(thumbDiv);
+                }
+            });
+        }
+
+        // 显示某个物种下的记录列表
+        async function showSpeciesRecords(species) {
+            currentSpecies = species;
+            await switchPage('species-page');
+            renderSpeciesRecords(species);
+        }
+
+        function showPlaceholder(container) {
+            container.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M22 14l-6-6-6 6-4-4-4 4v6h20v-6z"/></svg>';
+            container.classList.add('card-thumb-placeholder');
+        }
+
+        // Detail page
+        function showDetail(record) {
+            currentRecord = record;
+            switchPage('detail-page');
+            // 设置返回按钮文字
+            var btnText = document.getElementById('btn-back-text');
+            if (lastPage === 'map-page') {
+                btnText.textContent = '返回地图';
+            } else {
+                btnText.textContent = '返回列表';
+            }
+            renderDetailView(record, false);
+        }
+
+        // 渲染详情页（支持查看和编辑模式
+        function renderDetailView(record, isEditMode) {
+            var container = document.getElementById('detail-content');
+            container.innerHTML = '';
+
+            var html = '';
+
+            if (isEditMode) {
+                html += '<form id="edit-form">';
+                html += '<div class="detail-section"><div class="detail-label">中文名 <span style="color:#ef4444">*</span></div><input type="text" class="form-input" id="edit-chinese-name" value="' + escapeHtml(record.chineseName) + '" placeholder="请输入蜗牛中文名" required></div>';
+                html += '<div class="detail-section"><div class="detail-label">拉丁名</div><input type="text" class="form-input" id="edit-latin-name" value="' + escapeHtml(record.latinName || '') + '" placeholder="请输入拉丁学名（选填）"></div>';
+                html += '<div class="detail-section"><div class="detail-label">纲</div><input type="text" class="form-input" id="edit-phylum" value="' + escapeHtml(record.phylum || '') + '" placeholder="请输入纲"></div>';
+                html += '<div class="detail-section"><div class="detail-label">目</div><input type="text" class="form-input" id="edit-order" value="' + escapeHtml(record.order || '') + '" placeholder="请输入目"></div>';
+                html += '<div class="detail-section"><div class="detail-label">科</div><input type="text" class="form-input" id="edit-species" value="' + escapeHtml(record.species || '') + '" placeholder="请输入科"></div>';
+                html += '<div class="detail-section"><div class="detail-label">属</div><input type="text" class="form-input" id="edit-genus" value="' + escapeHtml(record.genus || '') + '" placeholder="请输入属"></div>';
+                html += '<div class="detail-section"><div class="detail-label">采集地点</div>';
+                html += '<div class="location-row"><input type="text" class="form-input" id="edit-location" value="' + escapeHtml(record.location || '') + '" placeholder="请输入采集地点">';
+                html += '<button type="button" class="btn-map-picker" id="edit-btn-map-picker" title="在地图上选点">📍</button></div>';
+                html += '<input type="hidden" id="edit-lat" value="' + (record.lat || '') + '">';
+                html += '<input type="hidden" id="edit-lng" value="' + (record.lng || '') + '">';
+                html += '</div>';
+                html += '<div class="detail-section"><div class="detail-label">采集时间</div><input type="date" class="form-input" id="edit-time" value="' + escapeHtml(record.time || '') + '"></div>';
+                html += '<div class="detail-section"><div class="detail-label">属性分类 <span style="color:#ef4444">*</span></div><select class="form-input" id="edit-ecology-type" required>';
+                html += '<option value="淡水"' + (record.ecologyType === '淡水' ? ' selected' : '') + '>淡水</option>';
+                html += '<option value="陆贝"' + (record.ecologyType === '陆贝' || !record.ecologyType ? ' selected' : '') + '>陆贝</option>';
+                html += '<option value="化石"' + (record.ecologyType === '化石' ? ' selected' : '') + '>化石</option>';
+                html += '</select></div>';
+                html += '<div class="detail-section"><div class="detail-label">图片（最多9张）</div><div class="image-upload-area" id="edit-image-upload-area"></div><input type="file" id="edit-image-input" accept="image/*" multiple style="display:none"><p class="image-upload-hint">支持 JPG/PNG，自动压缩至长边 1024px；拖拽图片可调整顺序，首张为缩略图</p></div>';
+                html += '<div class="detail-actions" style="gap:10px">';
+                html += '<button type="button" class="btn btn-back" id="btn-cancel-edit" style="width:auto">取消</button>';
+                html += '<button type="submit" class="btn btn-primary" id="btn-save-edit" style="width:auto">保存</button>';
+                html += '<button type="button" class="btn btn-danger" id="btn-delete" style="width:auto">删除此记录</button>';
+                html += '</div>';
+                html += '</form>';
+            } else {
+                html += '<div class="detail-section"><div class="detail-label">中文名</div><div class="detail-value large">' + escapeHtml(record.chineseName) + '</div></div>';
+                
+                // 拉丁名
+                var latinValue = record.latinName ? escapeHtml(record.latinName) : '<span style="color:#9ca3af;font-style:italic">待录入</span>';
+                html += '<div class="detail-section"><div class="detail-label">拉丁名</div><div class="detail-value" style="font-style:italic">' + latinValue + '</div></div>';
+                
+                // 纲
+                var phylumValue = record.phylum ? escapeHtml(record.phylum) : '<span style="color:#9ca3af">待录入</span>';
+                html += '<div class="detail-section"><div class="detail-label">纲</div><div class="detail-value">' + phylumValue + '</div></div>';
+                
+                // 目
+                var orderValue = record.order ? escapeHtml(record.order) : '<span style="color:#9ca3af">待录入</span>';
+                html += '<div class="detail-section"><div class="detail-label">目</div><div class="detail-value">' + orderValue + '</div></div>';
+                
+                // 科
+                var speciesValue = record.species ? escapeHtml(record.species) : '<span style="color:#9ca3af">待录入</span>';
+                html += '<div class="detail-section"><div class="detail-label">科</div><div class="detail-value">' + speciesValue + '</div></div>';
+                
+                // 属
+                var genusValue = record.genus ? escapeHtml(record.genus) : '<span style="color:#9ca3af">待录入</span>';
+                html += '<div class="detail-section"><div class="detail-label">属</div><div class="detail-value">' + genusValue + '</div></div>';
+                
+                // 采集地点
+                var locationDisplay = record.location ? escapeHtml(record.location) : '<span style="color:#9ca3af">待录入</span>';
+                html += '<div class="detail-section"><div class="detail-label">采集地点</div><div class="detail-value">' + locationDisplay + '</div></div>';
+                
+                // 采集时间
+                var timeValue = record.time ? escapeHtml(record.time) : '<span style="color:#9ca3af">待录入</span>';
+                html += '<div class="detail-section"><div class="detail-label">采集时间</div><div class="detail-value">' + timeValue + '</div></div>';
+                
+                // 属性分类
+                var ecologyValue = record.ecologyType ? escapeHtml(record.ecologyType) : '<span style="color:#9ca3af">待录入</span>';
+                html += '<div class="detail-section"><div class="detail-label">属性分类</div><div class="detail-value">' + ecologyValue + '</div></div>';
+                if (record.imageCount > 0) {
+                    html += '<div class="detail-section"><div class="detail-label">图片（' + record.imageCount + ' 张）</div><div class="detail-images" id="detail-images"></div></div>';
+                } else {
+                    html += '<div class="detail-section"><div class="detail-label">图片</div><p style="color:#9ca3af;font-size:0.9rem">暂无图片</p></div>';
+                }
+                html += '<div class="detail-actions" style="gap:10px">';
+                html += '<button type="button" class="btn btn-primary" id="btn-edit" style="width:auto">编辑</button>';
+                html += '<button type="button" class="btn btn-danger" id="btn-delete" style="width:auto">删除此记录</button>';
+                html += '</div>';
+            }
+
+            container.innerHTML = html;
+
+            // 根据模式渲染不同的内容
+            if (isEditMode) {
+                // 编辑模式
+                setupEditMode(record);
+            } else {
+                // 查看模式
+                if (record.imageCount > 0) {
+                    var imgContainer = document.getElementById('detail-images');
+                    for (var i = 0; i < record.imageCount; i++) {
+                        (function(idx) {
+                            var imgDiv = document.createElement('div');
+                            imgDiv.className = 'detail-image';
+                            imgContainer.appendChild(imgDiv);
+
+                            imageStore.getItem('img_' + record.id + '_' + idx).then(function(data) {
+                                if (data) {
+                                    var img = document.createElement('img');
+                                    img.src = URL.createObjectURL(data);
+                                    imgDiv.appendChild(img);
+                                    imgDiv.addEventListener('click', function() {
+                                        openViewer(img.src);
+                                    });
+                                }
+                            }).catch(function() {});
+                        })(i);
+                    }
+                }
+
+                // 编辑按钮
+                var editBtn = document.getElementById('btn-edit');
+                if (editBtn) {
+                    editBtn.addEventListener('click', function() {
+                        renderDetailView(record, true);
+                    });
+                }
+            }
+
+            // Delete button
+            var deleteBtn = document.getElementById('btn-delete');
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', async function() {
+                    if (!confirm('确定要删除「' + record.chineseName + '」吗？此操作不可撤销。')) return;
+
+                    try {
+                        // Delete images from IndexedDB
+                        for (var j = 0; j < record.imageCount; j++) {
+                            await imageStore.removeItem('img_' + record.id + '_' + j);
+                        }
+                        // Delete from storage (IndexedDB + localStorage)
+                        var records = await loadRecords();
+                        records = records.filter(function(r) { return r.id !== record.id; });
+                        await saveRecords(records);
+
+                        showToast('已删除');
+                        await switchPage('list-page');
+                    } catch (e) {
+                        showToast('删除失败: ' + e.message);
+                    }
+                });
+            }
+        }
+
+        // 编辑模式变量
+        var editPendingImages = [];
+        var editPendingLat = null;
+        var editPendingLng = null;
+        // 地图选点模式标志
+        var isMapPickerEditMode = false;
+
+        // 设置编辑模式
+        function setupEditMode(record) {
+            editPendingImages = [];
+            editPendingLat = record.lat || null;
+            editPendingLng = record.lng || null;
+
+            // 加载现有图片
+            loadEditImages(record);
+
+            // 取消按钮
+            var cancelBtn = document.getElementById('btn-cancel-edit');
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', function() {
+                    renderDetailView(record, false);
+                });
+            }
+
+            // 保存按钮
+            var editForm = document.getElementById('edit-form');
+            if (editForm) {
+                editForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    await saveEditRecord(record);
+                });
+            }
+
+            // 图片上传
+            var editImageInput = document.getElementById('edit-image-input');
+            var editImageUploadArea = document.getElementById('edit-image-upload-area');
+            var editImageUploadTrigger = null;
+
+            if (editImageInput && editImageUploadArea) {
+                editImageInput.addEventListener('change', async function() {
+                    var files = Array.from(this.files);
+                    var available = 9 - editPendingImages.length;
+                    if (files.length > available) {
+                        showToast('最多还能添加 ' + available + ' 张图片');
+                        files = files.slice(0, available);
+                    }
+                    for (var i = 0; i < files.length; i++) {
+                        try {
+                            var compressed = await compressImage(files[i]);
+                            editPendingImages.push(compressed);
+                        } catch (e) {
+                            showToast('图片处理失败');
+                        }
+                    }
+                    this.value = '';
+                    renderEditImagePreviews();
+                });
+            }
+
+            // 地图选点按钮
+            var editBtnMapPicker = document.getElementById('edit-btn-map-picker');
+            if (editBtnMapPicker) {
+                editBtnMapPicker.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    // 使用现有的地图选点功能，但是保存到编辑模式变量
+                    pickedLat = editPendingLat;
+                    pickedLng = editPendingLng;
+                    openEditMapModal();
+                });
+            }
+        }
+
+        // 加载编辑模式的图片
+        async function loadEditImages(record) {
+            for (var i = 0; i < record.imageCount; i++) {
+                try {
+                    var data = await imageStore.getItem('img_' + record.id + '_' + i);
+                    if (data) {
+                        var blob = new Blob([data], { type: 'image/jpeg' });
+                        // 创建一个临时的 File 对象
+                        var file = new File([blob], 'image_' + i + '.jpg', { type: 'image/jpeg' });
+                        editPendingImages.push(file);
+                    }
+                } catch (e) {}
+            }
+            renderEditImagePreviews();
+        }
+
+    // 渲染编辑模式的图片预览
+    function renderEditImagePreviews() {
+        var editImageUploadArea = document.getElementById('edit-image-upload-area');
+        if (!editImageUploadArea) return;
+        
+        editImageUploadArea.innerHTML = '';
+
+        // 渲染已有图片
+        editPendingImages.forEach(function(file, index) {
+            var item = document.createElement('div');
+            item.className = 'image-preview-item';
+            item.draggable = true;
+            item.dataset.index = index;
+            
+            var img = document.createElement('img');
+            img.src = URL.createObjectURL(file);
+            
+            var removeBtn = document.createElement('button');
+            removeBtn.className = 'remove-btn';
+            removeBtn.innerHTML = '&times;';
+            removeBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                editPendingImages.splice(index, 1);
+                renderEditImagePreviews();
+            });
+            
+            item.appendChild(img);
+            item.appendChild(removeBtn);
+            
+            // 拖拽功能
+            item.addEventListener('dragstart', handleDragStart);
+            item.addEventListener('dragover', handleDragOver);
+            item.addEventListener('drop', handleDrop);
+            item.addEventListener('dragend', handleDragEnd);
+            
+            editImageUploadArea.appendChild(item);
+        });
+
+        // 添加图片按钮（在最后）
+        if (editPendingImages.length < 9) {
+            var trigger = document.createElement('label');
+            trigger.className = 'image-upload-trigger';
+            trigger.id = 'edit-image-upload-trigger';
+            trigger.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg><span>添加图片</span>';
+            editImageUploadArea.appendChild(trigger);
+            
+            trigger.addEventListener('click', function() {
+                document.getElementById('edit-image-input').click();
+            });
+        }
+    }
+
+    // 拖拽排序变量
+    var dragSrcEl = null;
+
+    function handleDragStart(e) {
+        dragSrcEl = this;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', this.outerHTML);
+        this.classList.add('dragging');
+    }
+
+    function handleDragOver(e) {
+        if (e.preventDefault) {
+            e.preventDefault();
+        }
+        e.dataTransfer.dropEffect = 'move';
+        return false;
+    }
+
+    function handleDrop(e) {
+        e.stopPropagation();
+        if (dragSrcEl != this) {
+            var fromIndex = parseInt(dragSrcEl.dataset.index);
+            var toIndex = parseInt(this.dataset.index);
+            
+            // 交换图片
+            var temp = editPendingImages[fromIndex];
+            editPendingImages[fromIndex] = editPendingImages[toIndex];
+            editPendingImages[toIndex] = temp;
+            
+            renderEditImagePreviews();
+        }
+        return false;
+    }
+
+    function handleDragEnd(e) {
+        this.classList.remove('dragging');
+        dragSrcEl = null;
+    }
+
+    // 录入页面拖拽处理
+    function handleDragStartAdd(e) {
+        dragSrcEl = this;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', this.outerHTML);
+        this.classList.add('dragging');
+    }
+
+    function handleDropAdd(e) {
+        e.stopPropagation();
+        if (dragSrcEl != this) {
+            var fromIndex = parseInt(dragSrcEl.dataset.index);
+            var toIndex = parseInt(this.dataset.index);
+            
+            // 交换图片
+            var temp = pendingImages[fromIndex];
+            pendingImages[fromIndex] = pendingImages[toIndex];
+            pendingImages[toIndex] = temp;
+            
+            renderImagePreviews();
+        }
+        return false;
+    }
+
+    // 打开编辑模式的地图选点
+    function openEditMapModal() {
+        // 设置编辑模式标志
+        isMapPickerEditMode = true;
+        openMapModal();
+        
+        // 确保标记点正确显示
+        if (pickedLat && pickedLng && mapInstance) {
+            // 添加延迟确保地图已准备好
+            setTimeout(function() {
+                try {
+                    // 清除旧的标记
+                    if (pickMarker) {
+                        mapInstance.remove(pickMarker);
+                    }
+                    // 添加新的标记点
+                    pickMarker = new AMap.Marker({
+                        position: [pickedLng, pickedLat],
+                        map: mapInstance,
+                        icon: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png'
+                    });
+                    mapInstance.setZoomAndCenter(15, [pickedLng, pickedLat]);
+                } catch (e) {}
+            }, 300);
+        }
+    }
+
+    // 保存编辑后的记录
+    async function saveEditRecord(oldRecord) {
+        var chineseName = document.getElementById('edit-chinese-name').value.trim();
+        if (!chineseName) {
+            showToast('请输入中文名');
+            return;
+        }
+
+        var ecologyType = document.getElementById('edit-ecology-type').value;
+        if (!ecologyType) {
+            showToast('请选择生态类型');
+            return;
+        }
+
+        var updatedRecord = {
+            id: oldRecord.id,
+            chineseName: chineseName,
+            latinName: document.getElementById('edit-latin-name').value.trim(),
+            phylum: document.getElementById('edit-phylum').value.trim(),
+            order: document.getElementById('edit-order').value.trim(),
+            genus: document.getElementById('edit-genus').value.trim(),
+            species: document.getElementById('edit-species').value.trim(),
+            location: document.getElementById('edit-location').value.trim(),
+            time: document.getElementById('edit-time').value,
+            ecologyType: ecologyType,
+            lat: editPendingLat,
+            lng: editPendingLng,
+            imageCount: editPendingImages.length,
+            createdAt: oldRecord.createdAt
+        };
+
+        try {
+            // 删除旧图片
+            for (var j = 0; j < oldRecord.imageCount; j++) {
+                await imageStore.removeItem('img_' + oldRecord.id + '_' + j);
+            }
+            
+            // 保存新图片
+            for (var k = 0; k < editPendingImages.length; k++) {
+                var key = 'img_' + oldRecord.id + '_' + k;
+                await imageStore.setItem(key, editPendingImages[k]);
+            }
+            
+            // 更新记录
+            var records = await loadRecords();
+            var index = records.findIndex(function(r) { return r.id === oldRecord.id; });
+            if (index !== -1) {
+                records[index] = updatedRecord;
+                await saveRecords(records);
+            }
+            
+            currentRecord = updatedRecord;
+            showToast('保存成功');
+            renderDetailView(updatedRecord, false);
+        } catch (e) {
+            showToast('保存失败: ' + e.message);
+        }
+    }
+
+        // Back button - 详情页返回
+        document.getElementById('btn-back').addEventListener('click', async function() {
+            // 如果有打开的信息窗，关闭它
+            if (currentInfoWindow) {
+                currentInfoWindow.close();
+                currentInfoWindow = null;
+            }
+            // 根据来源页面决定跳转
+            if (lastPage === 'map-page') {
+                await switchPage('map-page');
+            } else if (lastPage === 'species-page') {
+                // 返回到物种记录页
+                await showSpeciesRecords(currentSpecies);
+            } else {
+                await switchPage('list-page');
+            }
+        });
+
+        // 物种页返回按钮
+        document.getElementById('btn-species-back').addEventListener('click', async function() {
+            await switchPage('list-page');
+        });
+
+        // 列表页搜索框相关事件
+        var listSearchInput = document.getElementById('list-search-input');
+        var listSearchClear = document.getElementById('list-search-clear');
+
+        listSearchInput.addEventListener('input', async function() {
+            listSearchKeyword = this.value;
+            if (listSearchKeyword) {
+                listSearchClear.style.display = 'flex';
+            } else {
+                listSearchClear.style.display = 'none';
+            }
+            await renderList();
+        });
+
+        listSearchClear.addEventListener('click', async function() {
+            listSearchInput.value = '';
+            listSearchKeyword = '';
+            listSearchClear.style.display = 'none';
+            await renderList();
+        });
+
+        // 地图页搜索框相关事件
+        var mapSearchInput = document.getElementById('map-search-input');
+        var mapSearchClear = document.getElementById('map-search-clear');
+
+        mapSearchInput.addEventListener('input', async function() {
+            mapSearchKeyword = this.value;
+            if (mapSearchKeyword) {
+                mapSearchClear.style.display = 'flex';
+            } else {
+                mapSearchClear.style.display = 'none';
+            }
+            await updateMarkersBySearch();
+        });
+
+        mapSearchClear.addEventListener('click', async function() {
+            mapSearchInput.value = '';
+            mapSearchKeyword = '';
+            mapSearchClear.style.display = 'none';
+            await updateMarkersBySearch();
+        });
+
+        // Image viewer
+        function openViewer(src) {
+            document.getElementById('viewer-img').src = src;
+            document.getElementById('image-viewer').classList.add('active');
+        }
+
+        document.getElementById('close-viewer').addEventListener('click', function() {
+            document.getElementById('image-viewer').classList.remove('active');
+        });
+
+        document.getElementById('image-viewer').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('active');
+            }
+        });
+
+        // Map picker
+        var mapModal = document.getElementById('map-modal');
+        var mapContainer = document.getElementById('map-container');
+        var mapInstance = null;
+        var geocoder = null;
+        var autoComplete = null;
+        var placeSearch = null;
+        var pickedLat = null;
+        var pickedLng = null;
+        var pickedAddress = null;
+        var searchMarker = null;
+        var pickMarker = null;
+
+        function openMapModal() {
+            mapModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+
+            if (typeof AMap === 'undefined') {
+                showToast('地图 SDK 未加载，请检查 API Key');
+                return;
+            }
+
+            if (!mapInstance) {
+                requestAnimationFrame(function() {
+                    requestAnimationFrame(function() {
+                        try {
+                            AMap.securityJsCode = 'a4d0b6007908ab8cfb6d9515a24a373b';
+                            mapInstance = new AMap.Map('map-container', {
+                                zoom: 15,
+                                center: [116.397428, 39.90923],
+                                resizeEnable: true
+                            });
+                            var satellite = new AMap.TileLayer.Satellite();
+                            mapInstance.addLayer(satellite);
+                            geocoder = new AMap.Geocoder({});
+                            mapInstance.on('click', onMapClick);
+
+                            // 初始化自动完成和地点搜索组件
+                            if (!autoComplete) {
+                                autoComplete = new AMap.AutoComplete({
+                                    input: 'picker-search-input'
+                                });
+                                placeSearch = new AMap.PlaceSearch({
+                                    map: mapInstance
+                                });
+                                
+                                // 监听自动完成的选择事件
+                                autoComplete.on('select', function(e) {
+                                    if (e.poi && e.poi.location) {
+                                        selectSearchResultWithGeocode(e.poi.name, e.poi.location.lng, e.poi.location.lat);
+                                    }
+                                });
+                            }
+
+                            // 手动搜索和渲染下拉菜单
+                            document.getElementById('picker-search-input').addEventListener('input', function() {
+                                var val = this.value.trim();
+                                var resultsEl = document.getElementById('picker-search-results');
+                                if (val.length > 0) {
+                                    autoComplete.search(val, function(status, result) {
+                                        if (status === 'complete' && result.tips) {
+                                            resultsEl.innerHTML = '';
+                                            var tips = result.tips.filter(function(t) { return t.location && t.id; });
+                                            if (tips.length > 0) {
+                                                tips.forEach(function(tip) {
+                                                    var item = document.createElement('div');
+                                                    item.className = 'map-search-result-item';
+                                                    // 组合完整的地址信息显示
+                                                    var fullAddr = '';
+                                                    if (tip.province) fullAddr += tip.province;
+                                                    if (tip.city && tip.city !== tip.province) fullAddr += tip.city;
+                                                    if (tip.district) fullAddr += tip.district;
+                                                    if (tip.address) fullAddr += tip.address;
+                                                    item.innerHTML = '<div class="result-name">' + escapeHtml(tip.name) + '</div>' +
+                                                        '<div class="result-addr">' + escapeHtml(fullAddr || tip.address || '') + '</div>';
+                                                    item.addEventListener('click', function() {
+                                                        if (tip.location) {
+                                                            selectSearchResultWithGeocode(tip.name, tip.location.lng, tip.location.lat);
+                                                        }
+                                                    });
+                                                    resultsEl.appendChild(item);
+                                                });
+                                                resultsEl.classList.add('active');
+                                            } else {
+                                                resultsEl.classList.remove('active');
+                                            }
+                                        }
+                                    });
+                                } else {
+                                    clearSearchResults();
+                                }
+                            });
+
+                            // 搜索按钮点击事件
+                            document.getElementById('picker-search-btn').addEventListener('click', function() {
+                                var keyword = document.getElementById('picker-search-input').value.trim();
+                                if (keyword) {
+                                    // 使用 PlaceSearch 进行搜索
+                                    placeSearch.search(keyword, function(status, result) {
+                                        if (status === 'complete' && result.poiList && result.poiList.pois.length > 0) {
+                                            // 取第一个结果
+                                            var poi = result.poiList.pois[0];
+                                            selectSearchResultWithGeocode(poi.name, poi.location.lng, poi.location.lat);
+                                        } else {
+                                            showToast('未找到相关地点');
+                                        }
+                                    });
+                                } else {
+                                    showToast('请输入搜索关键词');
+                                }
+                            });
+
+                            // 输入框回车事件
+                            document.getElementById('picker-search-input').addEventListener('keypress', function(e) {
+                                if (e.key === 'Enter') {
+                                    document.getElementById('picker-search-btn').click();
+                                }
+                            });
+                        } catch (e) {
+                            showToast('地图初始化失败: ' + e.message);
+                        }
+                    });
+                });
+            } else {
+                requestAnimationFrame(function() {
+                    try {
+                        mapInstance.resize();
+                    } catch (e) {}
+                });
+            }
+
+            if (pickedLat && pickedLng) {
+                requestAnimationFrame(function() {
+                    requestAnimationFrame(function() {
+                        try {
+                            // 清除旧的标记
+                            if (pickMarker) {
+                                mapInstance.remove(pickMarker);
+                            }
+                            // 添加新的标记点
+                            pickMarker = new AMap.Marker({
+                                position: [pickedLng, pickedLat],
+                                map: mapInstance,
+                                icon: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png'
+                            });
+                            mapInstance.setZoomAndCenter(15, [pickedLng, pickedLat]);
+                        } catch (e) {}
+                    });
+                });
+            }
+        }
+
+        function closeMapModal() {
+            mapModal.classList.remove('active');
+            document.body.style.overflow = '';
+            clearSearchResults();
+            clearSearchMarker();
+            document.getElementById('picker-search-input').value = '';
+        }
+
+        function clearSearchResults() {
+            var el = document.getElementById('picker-search-results');
+            el.innerHTML = '';
+            el.classList.remove('active');
+        }
+
+        function setSearchMarker(lng, lat) {
+            if (searchMarker) {
+                mapInstance.remove(searchMarker);
+            }
+            searchMarker = new AMap.Marker({
+                position: [lng, lat],
+                map: mapInstance,
+                icon: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png'
+            });
+        }
+
+        function clearSearchMarker() {
+            if (searchMarker) {
+                mapInstance.remove(searchMarker);
+                searchMarker = null;
+            }
+        }
+
+        // 选择搜索结果，并使用反向地理编码获取完整地址
+        function selectSearchResultWithGeocode(name, lng, lat) {
+            clearSearchResults();
+            pickedLat = lat;
+            pickedLng = lng;
+
+            // 清除旧的标记
+            if (pickMarker) {
+                mapInstance.remove(pickMarker);
+            }
+            // 添加新的标记点
+            pickMarker = new AMap.Marker({
+                position: [lng, lat],
+                map: mapInstance,
+                icon: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png'
+            });
+
+            // 移动地图到选中位置
+            mapInstance.setZoomAndCenter(16, [lng, lat]);
+
+            // 调用反向地理编码获取完整地址
+            geocoder.getAddress([lng, lat], function(status, result) {
+                if (status === 'complete' && result.regeocode) {
+                    pickedAddress = result.regeocode.formattedAddress;
+                } else {
+                    pickedAddress = name;
+                }
+                // 显示确认对话框
+                showConfirm(pickedAddress);
+            });
+        }
+
+        // 选择搜索结果（保留原来的函数供 onMapClick 使用）
+        function selectSearchResult(name, lng, lat) {
+            clearSearchResults();
+            pickedLat = lat;
+            pickedLng = lng;
+            pickedAddress = name;
+
+            // 清除旧的标记
+            if (pickMarker) {
+                mapInstance.remove(pickMarker);
+            }
+            // 添加新的标记点
+            pickMarker = new AMap.Marker({
+                position: [lng, lat],
+                map: mapInstance,
+                icon: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png'
+            });
+
+            // 移动地图到选中位置
+            mapInstance.setZoomAndCenter(16, [lng, lat]);
+
+            // 显示确认对话框
+            showConfirm(pickedAddress);
+        }
+
+        function onMapClick(e) {
+            clearSearchResults();
+            clearSearchMarker();
+            pickedLat = e.lnglat.getLat();
+            pickedLng = e.lnglat.getLng();
+
+            if (pickMarker) {
+                mapInstance.remove(pickMarker);
+            }
+
+            pickMarker = new AMap.Marker({
+                position: [pickedLng, pickedLat],
+                map: mapInstance,
+                icon: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png'
+            });
+
+            geocoder.getAddress([pickedLng, pickedLat], function(status, result) {
+                if (status === 'complete' && result.info === 'OK') {
+                    pickedAddress = result.regeocode.formattedAddress || '未知地址';
+                } else {
+                    pickedAddress = pickedLat.toFixed(6) + ', ' + pickedLng.toFixed(6);
+                }
+                showConfirm(pickedAddress);
+            });
+        }
+
+        function showConfirm(address) {
+            document.getElementById('confirm-message').textContent =
+                '是否用地图选点的地址【' + address + '】覆盖当前地址？';
+            document.getElementById('confirm-overlay').classList.add('active');
+        }
+
+        function closeConfirm() {
+            document.getElementById('confirm-overlay').classList.remove('active');
+        }
+
+        document.getElementById('btn-map-picker').addEventListener('click', function(e) {
+            e.preventDefault();
+            openMapModal();
+        });
+
+        document.getElementById('map-modal-close').addEventListener('click', function() {
+            closeMapModal();
+        });
+
+        document.getElementById('btn-confirm-yes').addEventListener('click', function() {
+            if (isMapPickerEditMode) {
+                // 编辑模式
+                editPendingLat = pickedLat;
+                editPendingLng = pickedLng;
+                
+                var editLocationInput = document.getElementById('edit-location');
+                if (editLocationInput) {
+                    editLocationInput.value = pickedAddress;
+                }
+                
+                var editLatInput = document.getElementById('edit-lat');
+                if (editLatInput) {
+                    editLatInput.value = editPendingLat;
+                }
+                
+                var editLngInput = document.getElementById('edit-lng');
+                if (editLngInput) {
+                    editLngInput.value = editPendingLng;
+                }
+                
+                showToast('地址已更新');
+            } else {
+                // 新增模式
+                document.getElementById('input-location').value = pickedAddress;
+                pendingLat = pickedLat;
+                pendingLng = pickedLng;
+                document.getElementById('input-lat').value = pickedLat;
+                document.getElementById('input-lng').value = pickedLng;
+                showToast('地址已覆盖');
+            }
+            
+            closeConfirm();
+            closeMapModal();
+            // 重置模式标志
+            isMapPickerEditMode = false;
+        });
+
+        document.getElementById('btn-confirm-no').addEventListener('click', function() {
+            pickedLat = null;
+            pickedLng = null;
+            pickedAddress = null;
+            isMapPickerEditMode = false;
+            closeConfirm();
+        });
+
+        document.getElementById('confirm-overlay').addEventListener('click', function(e) {
+            if (e.target === this) {
+                isMapPickerEditMode = false;
+                closeConfirm();
+            }
+        });
+
+        // Tab switching
+        document.querySelectorAll('.tab-item').forEach(function(tab) {
+            tab.addEventListener('click', async function() {
+                var pageName = this.dataset.page;
+                if (pages[pageName].classList.contains('active')) return;
+                closeFilterDropdown();
+                await switchPage(pageName);
+            });
+        });
+
+        // List filter buttons
+        document.getElementById('list-filter-btn').addEventListener('click', async function(e) {
+            e.stopPropagation();
+            await openFilterDropdown('list');
+        });
+
+        document.getElementById('list-filter-close').addEventListener('click', closeFilterDropdown);
+        document.getElementById('list-filter-clear').addEventListener('click', async function() { await clearFilters('list'); });
+        document.getElementById('list-filter-apply').addEventListener('click', async function() { await applyFilters('list'); });
+
+        // Map filter buttons
+        document.getElementById('map-filter-btn').addEventListener('click', async function(e) {
+            e.stopPropagation();
+            await openFilterDropdown('map');
+        });
+
+        document.getElementById('map-filter-close').addEventListener('click', closeFilterDropdown);
+        document.getElementById('map-filter-clear').addEventListener('click', async function() { await clearFilters('map'); });
+        document.getElementById('map-filter-apply').addEventListener('click', async function() { await applyFilters('map'); });
+
+        // 点击其他地方关闭下拉框
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.filter-dropdown') && !e.target.closest('.btn-primary')) {
+                closeFilterDropdown();
+            }
+        });
+
+        // Toast
+        function showToast(msg) {
+            var existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+            var toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(function() {
+                toast.remove();
+            }, 2000);
+        }
+
+        function escapeHtml(str) {
+            var div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // ===== Filter Functions =====
+        
+        // 构建科属树形数据
+        async function buildFilterTree() {
+            var records = await loadRecords();
+            var tree = {};
+            
+            records.forEach(function(record) {
+                var family = record.species || '未分类';
+                var genus = record.genus || '未知属';
+                
+                if (!tree[family]) {
+                    tree[family] = new Set();
+                }
+                tree[family].add(genus);
+            });
+            
+            return Object.keys(tree).map(function(family) {
+                return {
+                    name: family,
+                    genuses: Array.from(tree[family])
+                };
+            }).sort(function(a, b) {
+                return a.name.localeCompare(b.name);
+            });
+        }
+
+        // 渲染筛选树（指定容器）
+        async function renderFilterTree(containerId) {
+            var tree = await buildFilterTree();
+            var container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            tree.forEach(function(item) {
+                var familyDiv = document.createElement('div');
+                familyDiv.className = 'filter-family';
+                familyDiv.dataset.family = item.name;
+                
+                var header = document.createElement('div');
+                header.className = 'filter-family-header';
+                header.innerHTML = '<div class="filter-family-toggle">▶</div>';
+                
+                var familyCheck = document.createElement('input');
+                familyCheck.type = 'checkbox';
+                familyCheck.id = containerId + '-family-' + item.name;
+                familyCheck.checked = selectedFilters.families.has(item.name);
+                familyCheck.addEventListener('change', async function() {
+                    await toggleFamily(item.name, item.genuses, this.checked, containerId);
+                });
+                
+                var familyLabel = document.createElement('label');
+                familyLabel.htmlFor = containerId + '-family-' + item.name;
+                familyLabel.textContent = item.name;
+                
+                header.appendChild(familyCheck);
+                header.appendChild(familyLabel);
+                
+                // 展开/收起事件
+                header.addEventListener('click', function(e) {
+                    if (e.target !== familyCheck && e.target !== familyLabel) {
+                        toggleFamilyExpand(familyDiv, item.name);
+                    }
+                });
+                
+                var genusList = document.createElement('div');
+                genusList.className = 'filter-genus-list';
+                
+                item.genuses.forEach(function(genus) {
+                    var genusItem = document.createElement('div');
+                    genusItem.className = 'filter-genus-item';
+                    
+                    var genusCheck = document.createElement('input');
+                    genusCheck.type = 'checkbox';
+                    genusCheck.id = containerId + '-genus-' + item.name + '-' + genus;
+                    genusCheck.checked = selectedFilters.genuses.has(item.name + '|' + genus);
+                    genusCheck.addEventListener('change', async function() {
+                        await toggleGenus(item.name, genus, this.checked, containerId);
+                    });
+                    
+                    var genusLabel = document.createElement('label');
+                    genusLabel.htmlFor = containerId + '-genus-' + item.name + '-' + genus;
+                    genusLabel.textContent = genus;
+                    
+                    genusItem.appendChild(genusCheck);
+                    genusItem.appendChild(genusLabel);
+                    genusList.appendChild(genusItem);
+                });
+                
+                // 恢复展开状态
+                if (expandedFamilies.has(item.name)) {
+                    header.querySelector('.filter-family-toggle').classList.add('expanded');
+                    genusList.classList.add('expanded');
+                }
+                
+                familyDiv.appendChild(header);
+                familyDiv.appendChild(genusList);
+                container.appendChild(familyDiv);
+            });
+        }
+
+        // 切换科的展开/收起
+        function toggleFamilyExpand(familyDiv, familyName) {
+            var toggle = familyDiv.querySelector('.filter-family-toggle');
+            var genusList = familyDiv.querySelector('.filter-genus-list');
+            
+            if (expandedFamilies.has(familyName)) {
+                expandedFamilies.delete(familyName);
+                toggle.classList.remove('expanded');
+                genusList.classList.remove('expanded');
+            } else {
+                expandedFamilies.add(familyName);
+                toggle.classList.add('expanded');
+                genusList.classList.add('expanded');
+            }
+        }
+
+        // 切换科的勾选
+        async function toggleFamily(family, genuses, checked, containerId) {
+            if (checked) {
+                selectedFilters.families.add(family);
+                genuses.forEach(function(genus) {
+                    selectedFilters.genuses.add(family + '|' + genus);
+                });
+            } else {
+                selectedFilters.families.delete(family);
+                genuses.forEach(function(genus) {
+                    selectedFilters.genuses.delete(family + '|' + genus);
+                });
+            }
+            await renderFilterTree(containerId);
+        }
+
+        // 切换属的勾选
+        async function toggleGenus(family, genus, checked, containerId) {
+            var key = family + '|' + genus;
+            if (checked) {
+                selectedFilters.genuses.add(key);
+            } else {
+                selectedFilters.genuses.delete(key);
+                selectedFilters.families.delete(family);
+            }
+            await renderFilterTree(containerId);
+        }
+
+        // 打开筛选下拉框
+        async function openFilterDropdown(pageType) {
+            var dropdownId = pageType === 'list' ? 'list-filter-dropdown' : 'map-filter-dropdown';
+            var treeId = pageType === 'list' ? 'list-filter-tree' : 'map-filter-tree';
+            
+            document.getElementById('list-filter-dropdown').classList.remove('active');
+            document.getElementById('map-filter-dropdown').classList.remove('active');
+            
+            document.getElementById(dropdownId).classList.add('active');
+            await renderFilterTree(treeId);
+        }
+
+        // 关闭所有筛选下拉框
+        function closeFilterDropdown() {
+            document.getElementById('list-filter-dropdown').classList.remove('active');
+            document.getElementById('map-filter-dropdown').classList.remove('active');
+        }
+
+        // 清除筛选
+        async function clearFilters(pageType) {
+            selectedFilters.families.clear();
+            selectedFilters.genuses.clear();
+            isFilterActive = false;
+            
+            if (pageType === 'map') {
+                await loadMarkersToMap();
+            } else if (pageType === 'list') {
+                await renderList();
+            }
+            closeFilterDropdown();
+            showToast('筛选已清除');
+        }
+
+        // 应用筛选
+        async function applyFilters(pageType) {
+            isFilterActive = true;
+            if (pageType === 'map') {
+                await loadMarkersToMap();
+            } else if (pageType === 'list') {
+                await renderList();
+            }
+            closeFilterDropdown();
+            showToast('筛选已应用');
+        }
+
+        // 检查记录是否符合筛选条件
+        function matchesFilter(record) {
+            if (!isFilterActive || (selectedFilters.families.size === 0 && selectedFilters.genuses.size === 0)) {
+                return true;
+            }
+            
+            var family = record.species || '未分类';
+            var genus = record.genus || '未知属';
+            var key = family + '|' + genus;
+            
+            return selectedFilters.families.has(family) || selectedFilters.genuses.has(key);
+        }
+
+        // ===== Stats Page Functions =====
+        var statsChart = null;
+        var statsCurrentLevel = 'country';
+        
+        var provinceNameMap = {
+            '北京市': '北京市', '天津市': '天津市', '河北省': '河北省', '山西省': '山西省',
+            '内蒙古自治区': '内蒙古自治区', '辽宁省': '辽宁省', '吉林省': '吉林省',
+            '黑龙江省': '黑龙江省', '上海市': '上海市', '江苏省': '江苏省', '浙江省': '浙江省',
+            '安徽省': '安徽省', '福建省': '福建省', '江西省': '江西省', '山东省': '山东省',
+            '河南省': '河南省', '湖北省': '湖北省', '湖南省': '湖南省', '广东省': '广东省',
+            '广西壮族自治区': '广西壮族自治区', '海南省': '海南省', '重庆市': '重庆市',
+            '四川省': '四川省', '贵州省': '贵州省', '云南省': '云南省',
+            '西藏自治区': '西藏自治区', '陕西省': '陕西省', '甘肃省': '甘肃省',
+            '青海省': '青海省', '宁夏回族自治区': '宁夏回族自治区',
+            '新疆维吾尔自治区': '新疆维吾尔自治区', '台湾省': '台湾省',
+            '香港特别行政区': '香港特别行政区', '澳门特别行政区': '澳门特别行政区'
+        };
+        
+        var drilableProvinces = ['北京市', '上海市', '广东省', '江苏省', '浙江省', '四川省', '湖北省', '山东省', '河南省', '辽宁省', '黑龙江省'];
+        
+        function guessProvince(location) {
+            if (!location) return null;
+            
+            var provinceAliases = [
+                { full: '北京市', patterns: ['北京'] },
+                { full: '天津市', patterns: ['天津'] },
+                { full: '河北省', patterns: ['河北'] },
+                { full: '山西省', patterns: ['山西'] },
+                { full: '内蒙古自治区', patterns: ['内蒙古'] },
+                { full: '辽宁省', patterns: ['辽宁'] },
+                { full: '吉林省', patterns: ['吉林'] },
+                { full: '黑龙江省', patterns: ['黑龙江'] },
+                { full: '上海市', patterns: ['上海'] },
+                { full: '江苏省', patterns: ['江苏'] },
+                { full: '浙江省', patterns: ['浙江'] },
+                { full: '安徽省', patterns: ['安徽'] },
+                { full: '福建省', patterns: ['福建'] },
+                { full: '江西省', patterns: ['江西'] },
+                { full: '山东省', patterns: ['山东'] },
+                { full: '河南省', patterns: ['河南'] },
+                { full: '湖北省', patterns: ['湖北'] },
+                { full: '湖南省', patterns: ['湖南'] },
+                { full: '广东省', patterns: ['广东'] },
+                { full: '广西壮族自治区', patterns: ['广西'] },
+                { full: '海南省', patterns: ['海南'] },
+                { full: '重庆市', patterns: ['重庆'] },
+                { full: '四川省', patterns: ['四川'] },
+                { full: '贵州省', patterns: ['贵州'] },
+                { full: '云南省', patterns: ['云南'] },
+                { full: '西藏自治区', patterns: ['西藏'] },
+                { full: '陕西省', patterns: ['陕西'] },
+                { full: '甘肃省', patterns: ['甘肃'] },
+                { full: '青海省', patterns: ['青海'] },
+                { full: '宁夏回族自治区', patterns: ['宁夏'] },
+                { full: '新疆维吾尔自治区', patterns: ['新疆'] },
+                { full: '台湾省', patterns: ['台湾'] },
+                { full: '香港特别行政区', patterns: ['香港'] },
+                { full: '澳门特别行政区', patterns: ['澳门'] }
+            ];
+            
+            for (var i = 0; i < provinceAliases.length; i++) {
+                for (var j = 0; j < provinceAliases[i].patterns.length; j++) {
+                    if (location.indexOf(provinceAliases[i].patterns[j]) !== -1) {
+                        return provinceAliases[i].full;
+                    }
+                }
+            }
+            return null;
+        }
+        
+        function guessCity(location) {
+            if (!location) return null;
+            
+            var cityAliases = [
+                { full: '北京市', patterns: ['北京'] },
+                { full: '天津市', patterns: ['天津'] },
+                { full: '上海市', patterns: ['上海'] },
+                { full: '重庆市', patterns: ['重庆'] },
+                { full: '广州市', patterns: ['广州'] },
+                { full: '深圳市', patterns: ['深圳'] },
+                { full: '韶关市', patterns: ['韶关'] },
+                { full: '湛江市', patterns: ['湛江'] },
+                { full: '肇庆市', patterns: ['肇庆'] },
+                { full: '江门市', patterns: ['江门'] },
+                { full: '茂名市', patterns: ['茂名'] },
+                { full: '惠州市', patterns: ['惠州'] },
+                { full: '梅州市', patterns: ['梅州'] },
+                { full: '汕尾市', patterns: ['汕尾'] },
+                { full: '河源市', patterns: ['河源'] },
+                { full: '阳江市', patterns: ['阳江'] },
+                { full: '清远市', patterns: ['清远'] },
+                { full: '潮州市', patterns: ['潮州'] },
+                { full: '揭阳市', patterns: ['揭阳'] },
+                { full: '云浮市', patterns: ['云浮'] },
+                { full: '杭州市', patterns: ['杭州'] },
+                { full: '南京市', patterns: ['南京'] },
+                { full: '苏州市', patterns: ['苏州'] },
+                { full: '成都市', patterns: ['成都'] },
+                { full: '武汉市', patterns: ['武汉'] },
+                { full: '黄石市', patterns: ['黄石'] },
+                { full: '十堰市', patterns: ['十堰'] },
+                { full: '宜昌市', patterns: ['宜昌'] },
+                { full: '襄阳市', patterns: ['襄阳'] },
+                { full: '鄂州市', patterns: ['鄂州'] },
+                { full: '荆门市', patterns: ['荆门'] },
+                { full: '孝感市', patterns: ['孝感'] },
+                { full: '荆州市', patterns: ['荆州'] },
+                { full: '黄冈市', patterns: ['黄冈'] },
+                { full: '咸宁市', patterns: ['咸宁'] },
+                { full: '随州市', patterns: ['随州'] },
+                { full: '仙桃市', patterns: ['仙桃'] },
+                { full: '潜江市', patterns: ['潜江'] },
+                { full: '天门市', patterns: ['天门'] },
+                { full: '神农架林区', patterns: ['神农架'] },
+                { full: '西安市', patterns: ['西安'] },
+                { full: '长沙市', patterns: ['长沙'] },
+                { full: '郑州市', patterns: ['郑州'] },
+                { full: '开封市', patterns: ['开封'] },
+                { full: '洛阳市', patterns: ['洛阳'] },
+                { full: '平顶山市', patterns: ['平顶山'] },
+                { full: '安阳市', patterns: ['安阳'] },
+                { full: '鹤壁市', patterns: ['鹤壁'] },
+                { full: '新乡市', patterns: ['新乡'] },
+                { full: '焦作市', patterns: ['焦作'] },
+                { full: '濮阳市', patterns: ['濮阳'] },
+                { full: '许昌市', patterns: ['许昌'] },
+                { full: '漯河市', patterns: ['漯河'] },
+                { full: '三门峡市', patterns: ['三门峡'] },
+                { full: '南阳市', patterns: ['南阳'] },
+                { full: '商丘市', patterns: ['商丘'] },
+                { full: '信阳市', patterns: ['信阳'] },
+                { full: '周口市', patterns: ['周口'] },
+                { full: '驻马店市', patterns: ['驻马店'] },
+                { full: '济源市', patterns: ['济源'] },
+                { full: '青岛市', patterns: ['青岛'] },
+                { full: '大连市', patterns: ['大连'] },
+                { full: '沈阳市', patterns: ['沈阳'] },
+                { full: '宁波市', patterns: ['宁波'] },
+                { full: '厦门市', patterns: ['厦门'] },
+                { full: '福州市', patterns: ['福州'] },
+                { full: '济南市', patterns: ['济南'] },
+                { full: '合肥市', patterns: ['合肥'] },
+                { full: '南昌市', patterns: ['南昌'] },
+                { full: '昆明市', patterns: ['昆明'] },
+                { full: '南宁市', patterns: ['南宁'] },
+                { full: '贵阳市', patterns: ['贵阳'] },
+                { full: '兰州市', patterns: ['兰州'] },
+                { full: '石家庄市', patterns: ['石家庄'] },
+                { full: '太原市', patterns: ['太原'] },
+                { full: '长春市', patterns: ['长春'] },
+                { full: '哈尔滨市', patterns: ['哈尔滨'] },
+                { full: '海口市', patterns: ['海口'] },
+                { full: '三亚市', patterns: ['三亚'] },
+                { full: '三沙市', patterns: ['三沙'] },
+                { full: '儋州市', patterns: ['儋州'] },
+                { full: '五指山市', patterns: ['五指山'] },
+                { full: '琼海市', patterns: ['琼海'] },
+                { full: '文昌市', patterns: ['文昌'] },
+                { full: '万宁市', patterns: ['万宁'] },
+                { full: '东方市', patterns: ['东方'] },
+                { full: '定安县', patterns: ['定安'] },
+                { full: '屯昌县', patterns: ['屯昌'] },
+                { full: '澄迈县', patterns: ['澄迈'] },
+                { full: '临高县', patterns: ['临高'] },
+                { full: '昌江黎族自治县', patterns: ['昌江'] },
+                { full: '白沙黎族自治县', patterns: ['白沙'] },
+                { full: '琼中黎族苗族自治县', patterns: ['琼中'] },
+                { full: '陵水黎族自治县', patterns: ['陵水'] },
+                { full: '保亭黎族苗族自治县', patterns: ['保亭'] },
+                { full: '乐东黎族自治县', patterns: ['乐东'] },
+                { full: '东莞市', patterns: ['东莞'] },
+                { full: '佛山市', patterns: ['佛山'] },
+                { full: '无锡市', patterns: ['无锡'] },
+                { full: '常州市', patterns: ['常州'] },
+                { full: '温州市', patterns: ['温州'] },
+                { full: '绍兴市', patterns: ['绍兴'] },
+                { full: '嘉兴市', patterns: ['嘉兴'] },
+                { full: '湖州市', patterns: ['湖州'] },
+                { full: '金华市', patterns: ['金华'] },
+                { full: '衢州市', patterns: ['衢州'] },
+                { full: '舟山市', patterns: ['舟山'] },
+                { full: '台州市', patterns: ['台州'] },
+                { full: '丽水市', patterns: ['丽水'] },
+                { full: '泉州市', patterns: ['泉州'] },
+                { full: '漳州市', patterns: ['漳州'] },
+                { full: '中山市', patterns: ['中山'] },
+                { full: '珠海市', patterns: ['珠海'] },
+                { full: '汕头市', patterns: ['汕头'] },
+                { full: '绵阳市', patterns: ['绵阳'] },
+                { full: '德阳市', patterns: ['德阳'] },
+                { full: '宜宾市', patterns: ['宜宾'] },
+                { full: '南充市', patterns: ['南充'] },
+                { full: '乐山市', patterns: ['乐山'] },
+                { full: '自贡市', patterns: ['自贡'] },
+                { full: '泸州市', patterns: ['泸州'] },
+                { full: '内江市', patterns: ['内江'] },
+                { full: '桂林市', patterns: ['桂林'] },
+                { full: '柳州市', patterns: ['柳州'] },
+                { full: '梧州市', patterns: ['梧州'] },
+                { full: '北海市', patterns: ['北海'] },
+                { full: '防城港市', patterns: ['防城港'] },
+                { full: '钦州市', patterns: ['钦州'] },
+                { full: '贵港市', patterns: ['贵港'] },
+                { full: '玉林市', patterns: ['玉林'] },
+                { full: '百色市', patterns: ['百色'] },
+                { full: '贺州市', patterns: ['贺州'] },
+                { full: '河池市', patterns: ['河池'] },
+                { full: '来宾市', patterns: ['来宾'] },
+                { full: '崇左市', patterns: ['崇左'] },
+                { full: '洛阳市', patterns: ['洛阳'] },
+                { full: '开封市', patterns: ['开封'] },
+                { full: '南阳市', patterns: ['南阳'] },
+                { full: '新乡市', patterns: ['新乡'] },
+                { full: '岳阳市', patterns: ['岳阳'] },
+                { full: '湘潭市', patterns: ['湘潭'] },
+                { full: '衡阳市', patterns: ['衡阳'] },
+                { full: '株洲市', patterns: ['株洲'] },
+                { full: '宜昌市', patterns: ['宜昌'] },
+                { full: '襄阳市', patterns: ['襄阳'] },
+                { full: '荆州市', patterns: ['荆州'] },
+                { full: '黄石市', patterns: ['黄石'] },
+                { full: '九江市', patterns: ['九江'] },
+                { full: '赣州市', patterns: ['赣州'] },
+                { full: '景德镇市', patterns: ['景德镇'] },
+                { full: '芜湖市', patterns: ['芜湖'] },
+                { full: '蚌埠市', patterns: ['蚌埠'] },
+                { full: '马鞍山市', patterns: ['马鞍山'] },
+                { full: '黄山市', patterns: ['黄山'] },
+                { full: '徐州市', patterns: ['徐州'] },
+                { full: '南通市', patterns: ['南通'] },
+                { full: '连云港市', patterns: ['连云港'] },
+                { full: '淮安市', patterns: ['淮安'] },
+                { full: '盐城市', patterns: ['盐城'] },
+                { full: '扬州市', patterns: ['扬州'] },
+                { full: '镇江市', patterns: ['镇江'] },
+                { full: '泰州市', patterns: ['泰州'] },
+                { full: '宿迁市', patterns: ['宿迁'] },
+                { full: '唐山市', patterns: ['唐山'] },
+                { full: '秦皇岛市', patterns: ['秦皇岛'] },
+                { full: '保定市', patterns: ['保定'] },
+                { full: '邯郸市', patterns: ['邯郸'] },
+                { full: '沧州市', patterns: ['沧州'] },
+                { full: '承德市', patterns: ['承德'] },
+                { full: '廊坊市', patterns: ['廊坊'] },
+                { full: '大同市', patterns: ['大同'] },
+                { full: '临汾市', patterns: ['临汾'] },
+                { full: '运城市', patterns: ['运城'] },
+                { full: '晋中市', patterns: ['晋中'] },
+                { full: '长治市', patterns: ['长治'] },
+                { full: '呼和浩特市', patterns: ['呼和浩特'] },
+                { full: '包头市', patterns: ['包头'] },
+                { full: '鄂尔多斯市', patterns: ['鄂尔多斯'] },
+                { full: '赤峰市', patterns: ['赤峰'] },
+                { full: '通辽市', patterns: ['通辽'] },
+                { full: '呼伦贝尔市', patterns: ['呼伦贝尔'] },
+                { full: '鞍山市', patterns: ['鞍山'] },
+                { full: '抚顺市', patterns: ['抚顺'] },
+                { full: '本溪市', patterns: ['本溪'] },
+                { full: '丹东市', patterns: ['丹东'] },
+                { full: '锦州市', patterns: ['锦州'] },
+                { full: '吉林市', patterns: ['吉林市', '吉林'] },
+                { full: '延边朝鲜族自治州', patterns: ['延边'] },
+                { full: '四平市', patterns: ['四平'] },
+                { full: '通化市', patterns: ['通化'] },
+                { full: '白山市', patterns: ['白山'] },
+                { full: '大庆市', patterns: ['大庆'] },
+                { full: '齐齐哈尔市', patterns: ['齐齐哈尔'] },
+                { full: '牡丹江市', patterns: ['牡丹江'] },
+                { full: '佳木斯市', patterns: ['佳木斯'] },
+                { full: '西宁市', patterns: ['西宁'] },
+                { full: '银川市', patterns: ['银川'] },
+                { full: '石嘴山市', patterns: ['石嘴山'] },
+                { full: '天水市', patterns: ['天水'] },
+                { full: '嘉峪关市', patterns: ['嘉峪关'] },
+                { full: '酒泉市', patterns: ['酒泉'] },
+                { full: '乌鲁木齐市', patterns: ['乌鲁木齐'] },
+                { full: '克拉玛依市', patterns: ['克拉玛依'] },
+                { full: '吐鲁番市', patterns: ['吐鲁番'] },
+                { full: '哈密市', patterns: ['哈密'] },
+                { full: '拉萨市', patterns: ['拉萨'] },
+                { full: '日喀则市', patterns: ['日喀则'] },
+                { full: '丽江市', patterns: ['丽江'] },
+                { full: '大理市', patterns: ['大理'] },
+                { full: '玉溪市', patterns: ['玉溪'] },
+                { full: '曲靖市', patterns: ['曲靖'] },
+                { full: '保山市', patterns: ['保山'] },
+                { full: '昭通市', patterns: ['昭通'] },
+                { full: '普洱市', patterns: ['普洱'] },
+                { full: '临沧市', patterns: ['临沧'] },
+                { full: '楚雄彝族自治州', patterns: ['楚雄'] },
+                { full: '红河哈尼族彝族自治州', patterns: ['红河'] },
+                { full: '文山壮族苗族自治州', patterns: ['文山'] },
+                { full: '西双版纳傣族自治州', patterns: ['西双版纳'] },
+                { full: '大理白族自治州', patterns: ['大理'] },
+                { full: '德宏傣族景颇族自治州', patterns: ['德宏'] },
+                { full: '怒江傈僳族自治州', patterns: ['怒江'] },
+                { full: '迪庆藏族自治州', patterns: ['迪庆'] },
+                { full: '遵义市', patterns: ['遵义'] },
+                { full: '六盘水市', patterns: ['六盘水'] },
+                { full: '安顺市', patterns: ['安顺'] },
+                { full: '香港', patterns: ['香港'] },
+                { full: '澳门', patterns: ['澳门'] },
+                { full: '台北市', patterns: ['台北'] },
+                { full: '高雄市', patterns: ['高雄'] },
+                { full: '台中市', patterns: ['台中'] },
+                { full: '台南市', patterns: ['台南'] }
+            ];
+            
+            for (var i = 0; i < cityAliases.length; i++) {
+                for (var j = 0; j < cityAliases[i].patterns.length; j++) {
+                    if (location.indexOf(cityAliases[i].patterns[j]) !== -1) {
+                        return cityAliases[i].full;
+                    }
+                }
+            }
+            return null;
+        }
+        
+        async function getStatsData() {
+            var records = await loadRecords();
+            var speciesMap = {};
+            var provinceMap = {};
+            var cityMap = {};
+            
+            records.forEach(function(record) {
+                var speciesKey = getSpeciesKey(record.chineseName);
+                speciesMap[speciesKey] = (speciesMap[speciesKey] || 0) + 1;
+                
+                if (record.location) {
+                    var province = guessProvince(record.location);
+                    if (province) {
+                        provinceMap[province] = provinceMap[province] || { species: new Set(), records: 0 };
+                        provinceMap[province].species.add(speciesKey);
+                        provinceMap[province].records++;
+                        
+                        var city = guessCity(record.location);
+                        if (city && province) {
+                            var key = province + '|' + city;
+                            cityMap[key] = cityMap[key] || { species: new Set(), records: 0 };
+                            cityMap[key].species.add(speciesKey);
+                            cityMap[key].records++;
+                        }
+                    }
+                }
+            });
+            
+            return {
+                totalSpecies: Object.keys(speciesMap).length,
+                totalRecords: records.length,
+                provinceMap: provinceMap,
+                cityMap: cityMap
+            };
+        }
+        
+        function getColorByCount(count, maxCount) {
+            if (count === 0) return '#E8F0E9';
+            var ratio = count / maxCount;
+            if (ratio < 0.2) return '#A7BDAE';
+            if (ratio < 0.4) return '#7D9E88';
+            if (ratio < 0.6) return '#5A7D66';
+            return '#3D5A45';
+        }
+        
+        async function initStatsChart() {
+            try {
+                var chartDom = document.getElementById('stats-echarts');
+                if (!chartDom) {
+                    console.log('找不到图表DOM元素');
+                    return;
+                }
+                
+                if (!statsChart) {
+                    statsChart = echarts.init(chartDom);
+                }
+                
+                var stats = await getStatsData();
+                var mapData = [];
+                var maxCount = 0;
+                
+                // 获取统计数据 - 使用与地图数据一致的完整省份名称
+                var allProvinces = [
+                    '北京市', '天津市', '河北省', '山西省', '内蒙古自治区',
+                    '辽宁省', '吉林省', '黑龙江省', '上海市', '江苏省',
+                    '浙江省', '安徽省', '福建省', '江西省', '山东省', '河南省',
+                    '湖北省', '湖南省', '广东省', '广西壮族自治区', '海南省',
+                    '重庆市', '四川省', '贵州省', '云南省', '西藏自治区',
+                    '陕西省', '甘肃省', '青海省', '宁夏回族自治区',
+                    '新疆维吾尔自治区', '台湾省', '香港特别行政区', '澳门特别行政区'
+                ];
+                
+                allProvinces.forEach(function(name) {
+                    var provinceData = stats.provinceMap[name];
+                    var count = provinceData ? provinceData.records : 0;
+                    mapData.push({ name: name, value: count });
+                    if (count > maxCount) maxCount = count;
+                });
+                
+                var option = {
+                    tooltip: {
+                        trigger: 'item',
+                        formatter: function(params) {
+                            var provinceData = stats.provinceMap[params.name];
+                            var speciesCount = provinceData ? provinceData.species.size : 0;
+                            var recordCount = provinceData ? provinceData.records : 0;
+                            var tip = params.name + '<br/>';
+                            tip += '物种数: ' + speciesCount + '<br/>';
+                            tip += '记录数: ' + recordCount;
+                            return tip;
+                        },
+                        backgroundColor: 'rgba(61, 74, 63, 0.95)',
+                        borderColor: '#3D5A45',
+                        textStyle: {
+                            color: '#fff',
+                            fontSize: 12
+                        }
+                    },
+                    visualMap: {
+                        min: 0,
+                        max: maxCount || 1,
+                        left: 10,
+                        bottom: 10,
+                        text: ['多', '少'],
+                        inRange: {
+                            color: ['#E8F0E9', '#A7BDAE', '#7D9E88', '#5A7D66', '#3D5A45']
+                        },
+                        calculable: false,
+                        itemWidth: 12,
+                        itemHeight: 60,
+                        textStyle: {
+                            color: '#6B7470',
+                            fontSize: 9
+                        }
+                    },
+                    series: [{
+                        name: '记录数',
+                        type: 'map',
+                        map: 'china',
+                        roam: false,
+                        zoom: 1.7,
+                        center: [104, 36],
+                        scaleLimit: {
+                            min: 1,
+                            max: 5
+                        },
+                        emphasis: {
+                            label: {
+                                show: true,
+                                color: '#fff'
+                            },
+                            itemStyle: {
+                                areaColor: '#7D9E88'
+                            }
+                        },
+                        itemStyle: {
+                            borderColor: '#9CA4A0',
+                            borderWidth: 0.5
+                        },
+                        data: mapData
+                    }]
+                };
+                
+                // 如果已经加载过地图数据，直接使用
+                if (window.chinaMapData) {
+                    // 过滤掉南海诸岛/九段线，让大陆占满功能区
+                    var filteredCached = {
+                        type: 'FeatureCollection',
+                        features: window.chinaMapData.features.filter(function(f) {
+                            var name = (f.properties && f.properties.name) || '';
+                            return !name.includes('南海') && !name.includes('九段');
+                        })
+                    };
+                    echarts.registerMap('china', filteredCached);
+                    statsChart.setOption(option, true);
+                    
+                    // 绑定省份点击事件
+                    statsChart.off('click');
+                    statsChart.on('click', function(params) {
+                        if (params.componentType === 'series' && params.seriesType === 'map') {
+                            var provinceName = params.name;
+                            if (provinceName) {
+                                statsCurrentLevel = 'city';
+                                renderCityChart(provinceName);
+                            }
+                        }
+                    });
+                    return;
+                }
+                
+                // 从DataV CDN获取中国地图数据
+                fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json')
+                    .then(function(response) {
+                        if (!response.ok) {
+                            throw new Error('地图数据加载失败');
+                        }
+                        return response.json();
+                    })
+                    .then(function(mapData) {
+                        // 过滤掉南海诸岛/九段线，让大陆占满功能区
+                        mapData.features = mapData.features.filter(function(f) {
+                            var name = (f.properties && f.properties.name) || '';
+                            return !name.includes('南海') && !name.includes('九段');
+                        });
+                        window.chinaMapData = mapData;
+                        echarts.registerMap('china', mapData);
+                        statsChart.setOption(option, true);
+                        
+                        // 绑定省份点击事件
+                        statsChart.off('click');
+                        statsChart.on('click', function(params) {
+                            if (params.componentType === 'series' && params.seriesType === 'map') {
+                                var provinceName = params.name;
+                                if (provinceName) {
+                                    statsCurrentLevel = 'city';
+                                    renderCityChart(provinceName);
+                                }
+                            }
+                        });
+                    })
+                    .catch(function(error) {
+                        console.error('加载地图数据失败:', error);
+                        // 降级：使用简单矩形显示
+                        statsChart.setOption({
+                            title: {
+                                text: '地图加载失败，请刷新重试',
+                                left: 'center',
+                                top: 'center',
+                                textStyle: {
+                                    color: '#999',
+                                    fontSize: 14
+                                }
+                            }
+                        }, true);
+                    });
+                    
+            } catch (error) {
+                console.error('初始化统计图表出错:', error);
+            }
+        }
+        
+        async function renderCityChart(provinceName) {
+            var chartDom = document.getElementById('stats-echarts');
+            if (!chartDom) return;
+            
+            var stats = await getStatsData();
+            var barData = [];
+            var maxSpecies = 0;
+            var maxRecords = 0;
+            
+            // 更新顶部卡片为该省的统计
+            var provinceStats = stats.provinceMap[provinceName];
+            if (provinceStats) {
+                document.getElementById('stats-total-species').textContent = provinceStats.species.size;
+                document.getElementById('stats-total-records').textContent = provinceStats.records;
+            } else {
+                document.getElementById('stats-total-species').textContent = 0;
+                document.getElementById('stats-total-records').textContent = 0;
+            }
+            
+            // 从 cityMap 中找出该省的所有城市
+            for (var key in stats.cityMap) {
+                var parts = key.split('|');
+                if (parts[0] === provinceName) {
+                    var cityName = parts[1];
+                    var cityStats = stats.cityMap[key];
+                    var speciesCount = cityStats.species.size;
+                    var recordCount = cityStats.records;
+                    barData.push({
+                        name: cityName,
+                        value: speciesCount,
+                        records: recordCount
+                    });
+                    if (speciesCount > maxSpecies) maxSpecies = speciesCount;
+                    if (recordCount > maxRecords) maxRecords = recordCount;
+                }
+            }
+            
+            // 按物种数降序排序
+            barData.sort(function(a, b) {
+                return b.value - a.value;
+            });
+            
+            var cityNames = barData.map(function(item) { return item.name; });
+            var speciesValues = barData.map(function(item) { return item.value; });
+            var recordsValues = barData.map(function(item) { return item.records; });
+            
+            // 如果没有城市数据，显示提示信息
+            if (barData.length === 0) {
+                var noDataOption = {
+                    title: {
+                        text: provinceName + '暂无城市级数据',
+                        subtext: '可能原因：\n1. 该省采集记录的地址信息不够详细\n2. 地址格式未包含城市名称\n\n建议：在录入时使用「地图选点」功能，系统会自动识别城市',
+                        left: 'center',
+                        top: 'center',
+                        textStyle: {
+                            color: '#3D5A45',
+                            fontSize: 16
+                        },
+                        subtextStyle: {
+                            color: '#6B7470',
+                            fontSize: 12
+                        }
+                    }
+                };
+                statsChart.setOption(noDataOption, true);
+                document.getElementById('stats-back-btn').style.display = 'flex';
+                return;
+            }
+            
+            var option = {
+                title: {
+                    text: provinceName,
+                    left: 10,
+                    top: 5,
+                    textStyle: {
+                        color: '#3D5A45',
+                        fontSize: 13,
+                        fontWeight: 500
+                    }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        if (!params || !params.length) return '';
+                        var cityName = params[0].name;
+                        var cityData = barData.find(function(item) { return item.name === cityName; });
+                        var tip = cityName + '<br/>';
+                        tip += '物种数: ' + (cityData ? cityData.value : 0) + ' 种<br/>';
+                        tip += '记录数: ' + (cityData ? cityData.records : 0) + ' 条';
+                        return tip;
+                    },
+                    backgroundColor: 'rgba(61, 74, 63, 0.95)',
+                    borderColor: '#3D5A45',
+                    textStyle: {
+                        color: '#fff',
+                        fontSize: 12
+                    }
+                },
+                legend: {
+                    data: ['物种数', '记录数'],
+                    right: 10,
+                    top: 8,
+                    textStyle: {
+                        color: '#6B7470',
+                        fontSize: 11
+                    },
+                    itemWidth: 12,
+                    itemHeight: 8
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '8%',
+                    top: '18%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: cityNames,
+                    axisLabel: {
+                        rotate: 0,
+                        fontSize: 10,
+                        color: '#6B7470',
+                        margin: 6
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: '#9CA4A0'
+                        }
+                    }
+                },
+                yAxis: [{
+                    type: 'value',
+                    name: '物种数',
+                    minInterval: 1,
+                    nameTextStyle: {
+                        color: '#6B7470',
+                        fontSize: 10
+                    },
+                    axisLabel: {
+                        color: '#6B7470',
+                        fontSize: 10
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: '#9CA4A0'
+                        }
+                    },
+                    splitLine: {
+                        lineStyle: {
+                            color: '#E8EAE9',
+                            type: 'dashed'
+                        }
+                    }
+                }, {
+                    type: 'value',
+                    name: '记录数',
+                    minInterval: 1,
+                    nameTextStyle: {
+                        color: '#6B7470',
+                        fontSize: 10
+                    },
+                    axisLabel: {
+                        color: '#6B7470',
+                        fontSize: 10
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: '#9CA4A0'
+                        }
+                    },
+                    splitLine: {
+                        show: false
+                    }
+                }],
+                series: [
+                    {
+                        name: '物种数',
+                        type: 'bar',
+                        data: speciesValues,
+                        barWidth: '35%',
+                        itemStyle: {
+                            color: '#5A7D66',
+                            borderRadius: [3, 3, 0, 0]
+                        },
+                        label: {
+                            show: true,
+                            position: 'top',
+                            color: '#5A7D66',
+                            fontSize: 10
+                        }
+                    },
+                    {
+                        name: '记录数',
+                        type: 'bar',
+                        yAxisIndex: 1,
+                        data: recordsValues,
+                        barWidth: '35%',
+                        itemStyle: {
+                            color: '#A7BDAE',
+                            borderRadius: [3, 3, 0, 0]
+                        },
+                        label: {
+                            show: true,
+                            position: 'top',
+                            color: '#A7BDAE',
+                            fontSize: 10
+                        }
+                    }
+                ]
+            };
+            
+            statsChart.setOption(option, true);
+            
+            document.getElementById('stats-back-btn').style.display = 'flex';
+            
+            setTimeout(function() {
+                statsChart.resize();
+            }, 100);
+        }
+        
+        async function backToCountry() {
+            statsCurrentLevel = 'country';
+            document.getElementById('stats-back-btn').style.display = 'none';
+            
+            // 恢复顶部卡片为全国数据
+            var stats = await getStatsData();
+            document.getElementById('stats-total-species').textContent = stats.totalSpecies;
+            document.getElementById('stats-total-records').textContent = stats.totalRecords;
+            
+            await initStatsChart();
+            setTimeout(function() {
+                if (statsChart) statsChart.resize();
+            }, 100);
+        }
+        
+        document.getElementById('stats-back-btn').addEventListener('click', backToCountry);
+        
+        window.addEventListener('resize', function() {
+            if (statsChart) {
+                setTimeout(function() {
+                    statsChart.resize();
+                }, 100);
+            }
+        });
+        
+        var originalSwitchPage = switchPage;
+        switchPage = async function(pageName) {
+            await originalSwitchPage(pageName);
+            if (pageName === 'stats-page') {
+                statsCurrentLevel = 'country';
+                document.getElementById('stats-back-btn').style.display = 'none';
+                
+                var stats = await getStatsData();
+                document.getElementById('stats-total-species').textContent = stats.totalSpecies;
+                document.getElementById('stats-total-records').textContent = stats.totalRecords;
+                
+                setTimeout(function() {
+                    initStatsChart();
+                }, 100);
+            }
+        };
+        
+        // Initial: show add page
+        (async function() {
+            await originalSwitchPage('add-page');
+        })();
+    })();
+    </script>
+</body>
+</html>
