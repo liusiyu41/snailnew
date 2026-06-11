@@ -2,10 +2,15 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="蜗牛地图">
+    <meta name="theme-color" content="#5A7D66">
     <title>【螃蟹是也的蜗牛地图】</title>
     <script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="china-map.js"></script>
     <script>
         window._AMapSecurityConfig = {
             securityJsCode: 'a4d0b6007908ab8cfb6d9515a24a373b'
@@ -83,6 +88,7 @@
             background: var(--moss-700);
             color: var(--white);
             padding: 16px 20px 12px 20px;
+            padding-top: calc(16px + env(safe-area-inset-top));
             text-align: center;
             position: sticky;
             top: 0;
@@ -113,10 +119,10 @@
 
         .page {
             display: none;
-            padding: 12px 16px calc(var(--tab-height) + 16px) 16px;
+            padding: 12px 16px calc(var(--tab-height) + 16px + env(safe-area-inset-bottom)) 16px;
             max-width: 600px;
             margin: 0 auto;
-            min-height: calc(100vh - 60px - var(--tab-height));
+            min-height: calc(100vh - 60px - var(--tab-height) - env(safe-area-inset-bottom));
         }
 
         .page.active {
@@ -141,7 +147,8 @@
             bottom: 0;
             left: 0;
             right: 0;
-            height: var(--tab-height);
+            height: calc(var(--tab-height) + env(safe-area-inset-bottom));
+            padding-bottom: env(safe-area-inset-bottom);
             background: #FFFFFF;
             display: flex;
             border-top: 1px solid #D1D5D5;
@@ -214,7 +221,7 @@
             padding: 10px 12px;
             border: 1px solid var(--gray-200);
             border-radius: var(--radius-sm);
-            font-size: 0.95rem;
+            font-size: 1rem;
             font-family: inherit;
             outline: none;
             transition: border-color 0.2s;
@@ -299,9 +306,16 @@
             background: var(--white);
         }
 
-        .image-upload-trigger:hover {
+        .image-upload-trigger:active {
             border-color: var(--moss-400);
             color: var(--moss-600);
+        }
+
+        @media (hover: hover) {
+            .image-upload-trigger:hover {
+                border-color: var(--moss-400);
+                color: var(--moss-600);
+            }
         }
 
         .image-upload-trigger svg {
@@ -327,7 +341,7 @@
             justify-content: center;
             gap: 6px;
             padding: 11px 24px;
-            min-height: 40px;
+            min-height: 44px;
             border: none;
             border-radius: var(--radius);
             font-size: 0.9rem;
@@ -344,12 +358,14 @@
             color: var(--white);
         }
 
-        .btn-primary:hover {
-            background: var(--moss-700);
-        }
-
         .btn-primary:active {
             background: var(--moss-800);
+        }
+
+        @media (hover: hover) {
+            .btn-primary:hover {
+                background: var(--moss-700);
+            }
         }
 
         .btn-danger {
@@ -358,9 +374,16 @@
             border: 1px solid var(--red-500);
         }
 
-        .btn-danger:hover {
-            background: var(--red-500);
+        .btn-danger:active {
+            background: var(--red-600);
             color: var(--white);
+        }
+
+        @media (hover: hover) {
+            .btn-danger:hover {
+                background: var(--red-500);
+                color: var(--white);
+            }
         }
 
         .btn-back {
@@ -387,12 +410,12 @@
             padding: 10px 40px 10px 14px;
             border: 1px solid var(--gray-200);
             border-radius: var(--radius);
-            font-size: 0.9rem;
+            font-size: 1rem;
             outline: none;
             transition: border-color 0.2s;
             background: var(--off-white);
             font-weight: 300;
-            min-height: 40px;
+            min-height: 44px;
             box-sizing: border-box;
         }
 
@@ -430,8 +453,14 @@
             transition: background 0.2s;
         }
 
-        .search-clear-btn:hover {
-            background: var(--gray-300);
+        .search-clear-btn:active {
+            background: var(--gray-400);
+        }
+
+        @media (hover: hover) {
+            .search-clear-btn:hover {
+                background: var(--gray-300);
+            }
         }
 
         .map-search-bar .search-clear-btn {
@@ -440,8 +469,14 @@
             right: 28px;
         }
 
-        .map-search-bar .search-clear-btn:hover {
-            background: rgba(0,0,0,0.25);
+        .map-search-bar .search-clear-btn:active {
+            background: rgba(0,0,0,0.35);
+        }
+
+        @media (hover: hover) {
+            .map-search-bar .search-clear-btn:hover {
+                background: rgba(0,0,0,0.25);
+            }
         }
 
         #list-page .search-clear-btn {
@@ -468,11 +503,13 @@
         }
 
         .card:active {
-            border-color: var(--moss-200);
+            border-color: var(--moss-400);
         }
 
-        .card:hover {
-            border-color: var(--moss-300);
+        @media (hover: hover) {
+            .card:hover {
+                border-color: var(--moss-300);
+            }
         }
 
         .card-thumb {
@@ -727,13 +764,16 @@
             flex-shrink: 0;
         }
 
-        .btn-map-picker:hover {
-            border-color: var(--moss-400);
-            background: var(--moss-50);
+        .btn-map-picker:active {
+            border-color: var(--moss-500);
+            background: var(--moss-100);
         }
 
-        .btn-map-picker:active {
-            background: var(--moss-100);
+        @media (hover: hover) {
+            .btn-map-picker:hover {
+                border-color: var(--moss-400);
+                background: var(--moss-50);
+            }
         }
 
         /* Map Modal */
@@ -779,7 +819,7 @@
             padding: 8px 12px;
             border: none;
             border-radius: 8px;
-            font-size: 0.9rem;
+            font-size: 1rem;
             font-family: inherit;
             outline: none;
             background: rgba(255, 255, 255, 0.95);
@@ -821,9 +861,18 @@
             border-bottom: none;
         }
 
-        .map-search-result-item:hover,
+        .map-search-result-item:active {
+            background: var(--moss-100);
+        }
+
         .map-search-result-item.active {
             background: var(--moss-50);
+        }
+
+        @media (hover: hover) {
+            .map-search-result-item:hover {
+                background: var(--moss-50);
+            }
         }
 
         .map-search-result-item .result-name {
@@ -879,16 +928,16 @@
             top: 0;
             left: 0;
             right: 0;
-            bottom: var(--tab-height);
+            bottom: calc(var(--tab-height) + env(safe-area-inset-bottom));
             z-index: 1;
             background: #1a1a1a;
             width: 100vw;
-            height: calc(100vh - var(--tab-height));
+            height: calc(100vh - var(--tab-height) - env(safe-area-inset-bottom));
         }
 
         .map-page-search {
             position: absolute;
-            top: 80px;
+            top: calc(80px + env(safe-area-inset-top));
             left: 0;
             right: 0;
             z-index: 100;
@@ -905,7 +954,7 @@
             z-index: 50;
             background: var(--white);
             width: min(100%, 600px);
-            margin: -12px auto 12px auto;
+            margin: -12px auto 6px auto;
             border-bottom: 1px solid var(--gray-100);
         }
         
@@ -914,6 +963,36 @@
             display: flex;
             align-items: center;
             gap: 10px;
+        }
+
+        .data-toolbar {
+            display: flex;
+            gap: 8px;
+            width: min(100%, 600px);
+            margin: 0 auto 10px auto;
+            padding: 0 12px;
+        }
+
+        .data-toolbar .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            color: var(--gray-600);
+            background: var(--white);
+            border: 1px solid var(--gray-200);
+        }
+
+        .data-toolbar .btn:active {
+            background: var(--gray-100);
+        }
+
+        @media (hover: hover) {
+            .data-toolbar .btn:hover {
+                background: var(--gray-50);
+            }
         }
 
         /* Filter Dropdown */
@@ -1039,7 +1118,7 @@
             padding: 10px 40px 10px 12px;
             border: 1px solid var(--gray-200);
             border-radius: var(--radius);
-            font-size: 0.9rem;
+            font-size: 1rem;
             outline: none;
             background: white;
             transition: border-color 0.2s;
@@ -1200,7 +1279,7 @@
         .confirm-actions .btn {
             flex: 1;
             padding: 9px 18px;
-            min-height: 40px;
+            min-height: 44px;
         }
 
         .btn-confirm-no {
@@ -1208,8 +1287,14 @@
             color: var(--gray-700);
         }
 
-        .btn-confirm-no:hover {
-            background: var(--gray-200);
+        .btn-confirm-no:active {
+            background: var(--gray-300);
+        }
+
+        @media (hover: hover) {
+            .btn-confirm-no:hover {
+                background: var(--gray-200);
+            }
         }
 
         .btn-confirm-yes {
@@ -1217,8 +1302,14 @@
             color: var(--white);
         }
 
-        .btn-confirm-yes:hover {
-            background: var(--moss-700);
+        .btn-confirm-yes:active {
+            background: var(--moss-800);
+        }
+
+        @media (hover: hover) {
+            .btn-confirm-yes:hover {
+                background: var(--moss-700);
+            }
         }
 
         @media (max-width: 480px) {
@@ -1236,7 +1327,7 @@
             }
 
             .page {
-                padding: 12px 10px calc(var(--tab-height) + 20px) 10px;
+                padding: 12px 10px calc(var(--tab-height) + 20px + env(safe-area-inset-bottom)) 10px;
             }
 
             .card {
@@ -1286,7 +1377,7 @@
 
         /* Stats Page */
         #stats-page {
-            padding: 6px 8px calc(var(--tab-height) + 8px) 8px;
+            padding: 6px 8px calc(var(--tab-height) + 8px + env(safe-area-inset-bottom)) 8px;
             max-width: none;
             width: 100%;
             flex-direction: column;
@@ -1304,6 +1395,7 @@
             justify-content: flex-end;
             margin-bottom: 4px;
             gap: 8px;
+            flex-shrink: 0;
         }
 
         .stats-cards {
@@ -1316,6 +1408,91 @@
             gap: 6px;
         }
 
+        /* 移动端：卡片改为流式顶部横向布局 + 整个统计页严格一屏高度
+           不用 100vh（Safari 底部工具栏会导致内容被挤出），改用 absolute + top/bottom 精确锁定 */
+        @media (max-width: 768px) {
+            /* iOS 上 type="date" 的 input 有浏览器默认大尺寸，强制与 text input 一致 */
+            input[type="date"].form-input {
+                -webkit-appearance: none;
+                appearance: none;
+                height: 42px !important;
+                padding: 0 12px !important;
+                font-size: 1rem !important;
+                line-height: 1;
+                box-sizing: border-box;
+                min-height: 0;
+            }
+
+            #stats-page {
+                position: absolute;
+                top: 80px;
+                left: 0;
+                right: 0;
+                bottom: calc(var(--tab-height) + env(safe-area-inset-bottom));
+                height: auto;
+                min-height: 0;
+                padding: 4px 6px;
+                overflow: hidden;
+                box-sizing: border-box;
+            }
+
+            /* stats-header（返回全国按钮）：悬浮在右上角，不占额外一行 */
+            .stats-header {
+                position: absolute;
+                top: 12px;
+                right: 8px;
+                margin: 0;
+                z-index: 5;
+            }
+
+            /* 仅针对统计页的返回按钮：与左右两侧的 stat-card 高度/尺寸完全一致
+               必须覆盖 .btn 基础类的 min-height:44px 和 width:100%，否则按钮永远被撑高
+               不用全局 .btn-back，避免影响其他页面（筛选弹窗、地图弹窗等也用了 btn-back） */
+            #stats-back-btn {
+                min-height: 0 !important;
+                height: auto !important;
+                width: auto !important;
+                padding: 4px 10px !important;
+                font-size: 0.75rem !important;
+                line-height: 1 !important;
+                box-sizing: border-box;
+            }
+
+            #stats-back-btn svg {
+                width: 0.75rem !important;
+                height: 0.75rem !important;
+            }
+
+            /* 关键：嵌套 flex 每层都必须设 min-height:0 才能正确收缩，
+               否则 Safari/Chrome 会让子元素撑开父容器导致超出一屏 */
+            .stats-map-container {
+                min-height: 0;
+                height: auto;
+                flex: 1;
+            }
+
+            .stats-map-wrapper {
+                display: flex;
+                flex-direction: column;
+                min-height: 0;
+                height: 100%;
+                flex: 1;
+            }
+
+            /* 卡片：横向一行显示，右侧预留 ~90px 给返回按钮，避免文字被遮挡 */
+            .stats-cards {
+                position: static;
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 8px;
+                padding: 6px 90px 4px 8px;
+                z-index: 1;
+                width: 100%;
+                box-sizing: border-box;
+                flex-shrink: 0;
+            }
+        }
+
         .stat-card {
             display: flex;
             align-items: center;
@@ -1325,6 +1502,8 @@
             padding: 4px 10px;
             border: 1px solid var(--gray-100);
             white-space: nowrap;
+            box-sizing: border-box;
+            line-height: 1;
         }
 
         .stat-value {
@@ -1336,25 +1515,6 @@
         .stat-label {
             font-size: 0.75rem;
             color: var(--gray-500);
-        }
-
-        .btn-back {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            padding: 4px 10px;
-            background: var(--white);
-            border: 1px solid var(--gray-200);
-            border-radius: 6px;
-            color: var(--moss-700);
-            font-size: 0.75rem;
-            cursor: pointer;
-            transition: background 0.2s;
-            white-space: nowrap;
-        }
-
-        .btn-back:hover {
-            background: var(--gray-50);
         }
 
         .stats-map-container {
@@ -1382,20 +1542,26 @@
             min-height: 450px;
         }
 
-        @media (max-width: 480px) {
-            #stats-page {
-                padding: 4px 6px calc(var(--tab-height) + 6px) 6px;
-            }
-            
+        /* 移动端：图表容器在 flex 中占据剩余空间，不设置固定高度 */
+        @media (max-width: 768px) {
             #stats-echarts {
-                min-height: 400px;
+                flex: 1;
+                min-height: 0;
+                height: auto;
+                width: 100%;
             }
         }
-            
-            .stats-legend {
-                gap: 10px;
-                flex-wrap: wrap;
+
+        @media (max-width: 480px) {
+            #stats-echarts {
+                /* 小屏的最小视觉保护高度，不强制撑开 */
+                min-height: 220px;
             }
+        }
+
+        .stats-legend {
+            gap: 10px;
+            flex-wrap: wrap;
         }
     </style>
 </head>
@@ -1499,6 +1665,17 @@
                 </div>
                 <button class="search-clear-btn" id="list-search-clear" style="display:none;">&times;</button>
             </div>
+        </div>
+        <div class="data-toolbar">
+            <button class="btn btn-back" id="btn-export-data" style="flex: 1;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></svg>
+                <span>导出数据</span>
+            </button>
+            <button class="btn btn-back" id="btn-import-data" style="flex: 1;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21V9m0 0l-4 4m4-4l4 4M4 3h16"/></svg>
+                <span>导入数据</span>
+            </button>
+            <input type="file" id="import-file-input" accept=".json,application/json,*/*" style="display:none;">
         </div>
         <div class="card-list" id="card-list"></div>
         <div class="empty-state" id="empty-state">
@@ -1798,6 +1975,190 @@
                     // 如果两个存储都失败了，抛出原始错误
                     throw e;
                 }
+            }
+        }
+
+        // 把 Blob 转成 base64 字符串（用于导出图片）
+        function blobToBase64(blob) {
+            return new Promise(function(resolve, reject) {
+                var reader = new FileReader();
+                reader.onloadend = function() {
+                    resolve(reader.result);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        // 把 base64 字符串转成 Blob（用于导入图片）
+        function base64ToBlob(base64) {
+            var arr = base64.split(',');
+            var mime = arr[0].match(/:(.*?);/)[1];
+            var bstr = atob(arr[1]);
+            var n = bstr.length;
+            var u8 = new Uint8Array(n);
+            while (n--) {
+                u8[n] = bstr.charCodeAt(n);
+            }
+            return new Blob([u8], { type: mime });
+        }
+
+        // 导出全部数据（文本记录 + 图片）
+        async function exportAllData() {
+            try {
+                showToast('正在导出...');
+                var records = await loadRecords();
+                var images = {};
+
+                for (var i = 0; i < records.length; i++) {
+                    var r = records[i];
+                    for (var j = 0; j < r.imageCount; j++) {
+                        var key = 'img_' + r.id + '_' + j;
+                        try {
+                            var blob = await imageStore.getItem(key);
+                            if (blob) {
+                                images[key] = await blobToBase64(blob);
+                            }
+                        } catch (imgErr) {
+                            console.warn('导出图片失败: ' + key, imgErr);
+                        }
+                    }
+                }
+
+                var exportObj = {
+                    version: 1,
+                    exportedAt: new Date().toISOString(),
+                    recordCount: records.length,
+                    imageCount: Object.keys(images).length,
+                    records: records,
+                    images: images
+                };
+
+                var jsonStr = JSON.stringify(exportObj);
+                var blob = new Blob([jsonStr], { type: 'application/json' });
+                var url = URL.createObjectURL(blob);
+
+                var a = document.createElement('a');
+                var now = new Date();
+                var dateStr = now.getFullYear() + '' +
+                    String(now.getMonth() + 1).padStart(2, '0') +
+                    String(now.getDate()).padStart(2, '0') + '_' +
+                    String(now.getHours()).padStart(2, '0') +
+                    String(now.getMinutes()).padStart(2, '0');
+                a.href = url;
+                a.download = '蜗牛地图数据备份_' + dateStr + '.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+
+                showToast('导出成功：共 ' + records.length + ' 条记录，' + Object.keys(images).length + ' 张图片');
+            } catch (err) {
+                console.error('导出失败:', err);
+                showToast('导出失败：' + (err.message || err));
+            }
+        }
+
+        // 导入全部数据（带差异分析）
+        async function importAllData(file) {
+            try {
+                showToast('正在读取文件...');
+
+                // 1. 读取导入文件
+                var text = await new Promise(function(resolve, reject) {
+                    var reader = new FileReader();
+                    reader.onload = function(e) { resolve(e.target.result); };
+                    reader.onerror = reject;
+                    reader.readAsText(file);
+                });
+
+                var data = JSON.parse(text);
+                if (!data || !Array.isArray(data.records) || typeof data.images !== 'object') {
+                    throw new Error('文件格式不正确');
+                }
+
+                // 2. 读取当前本地数据，对比差异
+                var currentRecords = await loadRecords();
+                var currentIds = {};
+                for (var i = 0; i < currentRecords.length; i++) {
+                    currentIds[currentRecords[i].id] = true;
+                }
+
+                var importIds = {};
+                for (var j = 0; j < data.records.length; j++) {
+                    importIds[data.records[j].id] = true;
+                }
+
+                var newCount = 0;      // 导入文件有、当前没有的
+                var updateCount = 0;   // 两边都有的
+                var missingCount = 0;  // 当前有、导入文件没有的（将被删除）
+
+                for (var k = 0; k < data.records.length; k++) {
+                    if (currentIds[data.records[k].id]) {
+                        updateCount++;
+                    } else {
+                        newCount++;
+                    }
+                }
+                for (var m = 0; m < currentRecords.length; m++) {
+                    if (!importIds[currentRecords[m].id]) {
+                        missingCount++;
+                    }
+                }
+
+                // 3. 生成差异提示
+                var msg = '【导入前差异分析】\n\n' +
+                    '· 当前设备：' + currentRecords.length + ' 条记录\n' +
+                    '· 导入文件：' + data.records.length + ' 条记录\n' +
+                    '· 新增：' + newCount + ' 条（导入文件新增）\n' +
+                    '· 相同：' + updateCount + ' 条（两边都有）\n' +
+                    '· ⚠️ 将被删除：' + missingCount + ' 条（当前有、导入文件没有）\n\n' +
+                    '导入后将以导入文件为准覆盖当前数据。\n\n' +
+                    '建议：如果"将被删除"大于 0，请确认这份导入文件是否为最新版本后再继续。';
+
+                if (!confirm(msg)) {
+                    return;
+                }
+
+                showToast('正在导入...');
+
+                // 4. 清空现有数据
+                try {
+                    await recordStore.removeItem('records');
+                    var keys = await imageStore.keys();
+                    for (var k2 = 0; k2 < keys.length; k2++) {
+                        await imageStore.removeItem(keys[k2]);
+                    }
+                } catch (clearErr) {
+                    console.warn('清空旧数据时出错（可能原本为空）:', clearErr);
+                }
+
+                // 5. 写入文本记录
+                await recordStore.setItem('records', data.records);
+                try {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(data.records));
+                } catch (localErr) {
+                    // localStorage 容量不足时忽略，主存储仍有效
+                }
+
+                // 6. 写入图片
+                var imgKeys = Object.keys(data.images);
+                for (var m2 = 0; m2 < imgKeys.length; m2++) {
+                    var imgKey = imgKeys[m2];
+                    try {
+                        var imgBlob = base64ToBlob(data.images[imgKey]);
+                        await imageStore.setItem(imgKey, imgBlob);
+                    } catch (imgErr) {
+                        console.warn('导入图片失败: ' + imgKey, imgErr);
+                    }
+                }
+
+                showToast('导入成功：共 ' + data.records.length + ' 条记录，' + imgKeys.length + ' 张图片');
+                // 刷新页面以重新加载
+                setTimeout(function() { location.reload(); }, 800);
+            } catch (err) {
+                console.error('导入失败:', err);
+                showToast('导入失败：' + (err.message || err));
             }
         }
 
@@ -2953,6 +3314,23 @@
             await switchPage('list-page');
         });
 
+        // 导出数据
+        document.getElementById('btn-export-data').addEventListener('click', async function() {
+            await exportAllData();
+        });
+
+        // 导入数据
+        var importFileInput = document.getElementById('import-file-input');
+        document.getElementById('btn-import-data').addEventListener('click', function() {
+            importFileInput.value = '';
+            importFileInput.click();
+        });
+        importFileInput.addEventListener('change', function(e) {
+            if (e.target.files && e.target.files.length > 0) {
+                importAllData(e.target.files[0]);
+            }
+        });
+
         // 列表页搜索框相关事件
         var listSearchInput = document.getElementById('list-search-input');
         var listSearchClear = document.getElementById('list-search-clear');
@@ -3972,6 +4350,7 @@
         }
         
         async function initStatsChart() {
+            window.__tipProvince = null;
             try {
                 var chartDom = document.getElementById('stats-echarts');
                 if (!chartDom) {
@@ -4005,16 +4384,25 @@
                     if (count > maxCount) maxCount = count;
                 });
                 
+                // 根据屏幕宽度调整地图参数（移动端防止左右边缘被裁切）
+                var isMobileScreen = window.innerWidth <= 768;
+                var mapZoom = isMobileScreen ? 1.2 : 1.7;
+                var mapCenter = isMobileScreen ? [104, 36] : [104, 36];
+
                 var option = {
                     tooltip: {
                         trigger: 'item',
+                        triggerOn: 'click',
+                        hideDelay: 10000,
+                        enterable: false,
                         formatter: function(params) {
                             var provinceData = stats.provinceMap[params.name];
                             var speciesCount = provinceData ? provinceData.species.size : 0;
                             var recordCount = provinceData ? provinceData.records : 0;
                             var tip = params.name + '<br/>';
                             tip += '物种数: ' + speciesCount + '<br/>';
-                            tip += '记录数: ' + recordCount;
+                            tip += '记录数: ' + recordCount + '<br/>';
+                            tip += '<span style="font-size:10px;color:#C8D4CE">(再次点击下钻)</span>';
                             return tip;
                         },
                         backgroundColor: 'rgba(61, 74, 63, 0.95)',
@@ -4046,8 +4434,8 @@
                         type: 'map',
                         map: 'china',
                         roam: false,
-                        zoom: 1.7,
-                        center: [104, 36],
+                        zoom: mapZoom,
+                        center: mapCenter,
                         scaleLimit: {
                             min: 1,
                             max: 5
@@ -4069,78 +4457,38 @@
                     }]
                 };
                 
-                // 如果已经加载过地图数据，直接使用
-                if (window.chinaMapData) {
-                    // 过滤掉南海诸岛/九段线，让大陆占满功能区
-                    var filteredCached = {
-                        type: 'FeatureCollection',
-                        features: window.chinaMapData.features.filter(function(f) {
-                            var name = (f.properties && f.properties.name) || '';
-                            return !name.includes('南海') && !name.includes('九段');
-                        })
-                    };
-                    echarts.registerMap('china', filteredCached);
+                // 直接使用本地内嵌的中国地图数据
+                if (window.CHINA_MAP_DATA) {
+                    echarts.registerMap('china', window.CHINA_MAP_DATA);
                     statsChart.setOption(option, true);
-                    
-                    // 绑定省份点击事件
+
+                    // 绑定省份点击事件：第一次点击只显示 tooltip，再次点击同省才下钻
                     statsChart.off('click');
                     statsChart.on('click', function(params) {
                         if (params.componentType === 'series' && params.seriesType === 'map') {
                             var provinceName = params.name;
-                            if (provinceName) {
+                            if (!provinceName) return;
+                            if (window.__tipProvince === provinceName) {
+                                // 第二次点击同省 → 下钻
+                                window.__tipProvince = null;
                                 statsCurrentLevel = 'city';
                                 renderCityChart(provinceName);
+                            } else {
+                                // 第一次点击或切换省份 → 只显示 tooltip
+                                window.__tipProvince = provinceName;
                             }
                         }
                     });
-                    return;
+                } else {
+                    statsChart.setOption({
+                        title: {
+                            text: '地图数据加载失败',
+                            left: 'center',
+                            top: 'center',
+                            textStyle: { color: '#999', fontSize: 14 }
+                        }
+                    }, true);
                 }
-                
-                // 从DataV CDN获取中国地图数据
-                fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json')
-                    .then(function(response) {
-                        if (!response.ok) {
-                            throw new Error('地图数据加载失败');
-                        }
-                        return response.json();
-                    })
-                    .then(function(mapData) {
-                        // 过滤掉南海诸岛/九段线，让大陆占满功能区
-                        mapData.features = mapData.features.filter(function(f) {
-                            var name = (f.properties && f.properties.name) || '';
-                            return !name.includes('南海') && !name.includes('九段');
-                        });
-                        window.chinaMapData = mapData;
-                        echarts.registerMap('china', mapData);
-                        statsChart.setOption(option, true);
-                        
-                        // 绑定省份点击事件
-                        statsChart.off('click');
-                        statsChart.on('click', function(params) {
-                            if (params.componentType === 'series' && params.seriesType === 'map') {
-                                var provinceName = params.name;
-                                if (provinceName) {
-                                    statsCurrentLevel = 'city';
-                                    renderCityChart(provinceName);
-                                }
-                            }
-                        });
-                    })
-                    .catch(function(error) {
-                        console.error('加载地图数据失败:', error);
-                        // 降级：使用简单矩形显示
-                        statsChart.setOption({
-                            title: {
-                                text: '地图加载失败，请刷新重试',
-                                left: 'center',
-                                top: 'center',
-                                textStyle: {
-                                    color: '#999',
-                                    fontSize: 14
-                                }
-                            }
-                        }, true);
-                    });
                     
             } catch (error) {
                 console.error('初始化统计图表出错:', error);
@@ -4148,6 +4496,7 @@
         }
         
         async function renderCityChart(provinceName) {
+            window.__tipProvince = null;
             var chartDom = document.getElementById('stats-echarts');
             if (!chartDom) return;
             
@@ -4278,9 +4627,8 @@
                         }
                     }
                 },
-                yAxis: [{
+                yAxis: {
                     type: 'value',
-                    name: '物种数',
                     minInterval: 1,
                     nameTextStyle: {
                         color: '#6B7470',
@@ -4301,27 +4649,7 @@
                             type: 'dashed'
                         }
                     }
-                }, {
-                    type: 'value',
-                    name: '记录数',
-                    minInterval: 1,
-                    nameTextStyle: {
-                        color: '#6B7470',
-                        fontSize: 10
-                    },
-                    axisLabel: {
-                        color: '#6B7470',
-                        fontSize: 10
-                    },
-                    axisLine: {
-                        lineStyle: {
-                            color: '#9CA4A0'
-                        }
-                    },
-                    splitLine: {
-                        show: false
-                    }
-                }],
+                },
                 series: [
                     {
                         name: '物种数',
@@ -4342,7 +4670,6 @@
                     {
                         name: '记录数',
                         type: 'bar',
-                        yAxisIndex: 1,
                         data: recordsValues,
                         barWidth: '35%',
                         itemStyle: {
@@ -4384,7 +4711,7 @@
         }
         
         document.getElementById('stats-back-btn').addEventListener('click', backToCountry);
-        
+
         window.addEventListener('resize', function() {
             if (statsChart) {
                 setTimeout(function() {
