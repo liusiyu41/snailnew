@@ -1886,14 +1886,33 @@
                 if (!speciesMap[speciesKey]) {
                     speciesMap[speciesKey] = {
                         key: speciesKey,
-                        chineseName: record.chineseName,
+                        chineseName: speciesKey,
                         latinName: record.latinName,
                         records: []
                     };
                 }
                 speciesMap[speciesKey].records.push(record);
             });
-            return Object.values(speciesMap);
+            
+            var speciesList = Object.values(speciesMap);
+            
+            speciesList.sort(function(a, b) {
+                var aHasDash = a.key.includes('-');
+                var bHasDash = b.key.includes('-');
+                
+                if (aHasDash && !bHasDash) return 1;
+                if (!aHasDash && bHasDash) return -1;
+                
+                return a.key.localeCompare(b.key, 'zh-CN');
+            });
+            
+            speciesList.forEach(function(species) {
+                species.records.sort(function(r1, r2) {
+                    return (r2.createdAt || 0) - (r1.createdAt || 0);
+                });
+            });
+            
+            return speciesList;
         }
 
         function filterRecords(records, keyword) {
@@ -2001,6 +2020,20 @@
                 u8[n] = bstr.charCodeAt(n);
             }
             return new Blob([u8], { type: mime });
+        }
+
+        // 获取图片数据（兼容Base64和Blob格式）
+        async function getImageAsBlob(imageData) {
+            if (!imageData) return null;
+            // 如果是Base64字符串，转换为Blob
+            if (typeof imageData === 'string' && imageData.startsWith('data:')) {
+                return base64ToBlob(imageData);
+            }
+            // 如果已经是Blob/File对象，直接返回
+            if (imageData instanceof Blob) {
+                return imageData;
+            }
+            return null;
         }
 
         // 导出全部数据（文本记录 + 图片）
@@ -2141,13 +2174,12 @@
                     // localStorage 容量不足时忽略，主存储仍有效
                 }
 
-                // 6. 写入图片
+                // 6. 写入图片 (直接存储Base64，无需转换)
                 var imgKeys = Object.keys(data.images);
                 for (var m2 = 0; m2 < imgKeys.length; m2++) {
                     var imgKey = imgKeys[m2];
                     try {
-                        var imgBlob = base64ToBlob(data.images[imgKey]);
-                        await imageStore.setItem(imgKey, imgBlob);
+                        await imageStore.setItem(imgKey, data.images[imgKey]);
                     } catch (imgErr) {
                         console.warn('导入图片失败: ' + imgKey, imgErr);
                     }
@@ -2642,10 +2674,11 @@
             };
 
             try {
-                // Save images to IndexedDB
+                // Save images to IndexedDB (as Base64 for better compatibility)
                 for (var i = 0; i < pendingImages.length; i++) {
                     var key = 'img_' + record.id + '_' + i;
-                    await imageStore.setItem(key, pendingImages[i]);
+                    var base64 = await blobToBase64(pendingImages[i]);
+                    await imageStore.setItem(key, base64);
                 }
 
                 // Save text to storage (IndexedDB + localStorage)
@@ -2743,9 +2776,10 @@
                 if (firstRecord && firstRecord.imageCount > 0) {
                     try {
                         var thumbData = await imageStore.getItem('img_' + firstRecord.id + '_0');
-                        if (thumbData) {
+                        var blob = await getImageAsBlob(thumbData);
+                        if (blob) {
                             var thumbImg = document.createElement('img');
-                            thumbImg.src = URL.createObjectURL(thumbData);
+                            thumbImg.src = URL.createObjectURL(blob);
                             thumbDiv.appendChild(thumbImg);
                         } else {
                             showPlaceholder(thumbDiv);
@@ -2817,9 +2851,10 @@
                 if (record.imageCount > 0) {
                     try {
                         var thumbData = await imageStore.getItem('img_' + record.id + '_0');
-                        if (thumbData) {
+                        var blob = await getImageAsBlob(thumbData);
+                        if (blob) {
                             var thumbImg = document.createElement('img');
-                            thumbImg.src = URL.createObjectURL(thumbData);
+                            thumbImg.src = URL.createObjectURL(blob);
                             thumbDiv.appendChild(thumbImg);
                         } else {
                             showPlaceholder(thumbDiv);
@@ -2954,10 +2989,11 @@
                             imgDiv.className = 'detail-image';
                             imgContainer.appendChild(imgDiv);
 
-                            imageStore.getItem('img_' + record.id + '_' + idx).then(function(data) {
-                                if (data) {
+                            imageStore.getItem('img_' + record.id + '_' + idx).then(async function(data) {
+                                var blob = await getImageAsBlob(data);
+                                if (blob) {
                                     var img = document.createElement('img');
-                                    img.src = URL.createObjectURL(data);
+                                    img.src = URL.createObjectURL(blob);
                                     imgDiv.appendChild(img);
                                     imgDiv.addEventListener('click', function() {
                                         openViewer(img.src);
@@ -3079,10 +3115,10 @@
             for (var i = 0; i < record.imageCount; i++) {
                 try {
                     var data = await imageStore.getItem('img_' + record.id + '_' + i);
-                    if (data) {
-                        var blob = new Blob([data], { type: 'image/jpeg' });
+                    var blob = await getImageAsBlob(data);
+                    if (blob) {
                         // 创建一个临时的 File 对象
-                        var file = new File([blob], 'image_' + i + '.jpg', { type: 'image/jpeg' });
+                        var file = new File([blob], 'image_' + i + '.jpg', { type: blob.type || 'image/jpeg' });
                         editPendingImages.push(file);
                     }
                 } catch (e) {}
@@ -3269,10 +3305,11 @@
                 await imageStore.removeItem('img_' + oldRecord.id + '_' + j);
             }
             
-            // 保存新图片
+            // 保存新图片 (as Base64 for better compatibility)
             for (var k = 0; k < editPendingImages.length; k++) {
                 var key = 'img_' + oldRecord.id + '_' + k;
-                await imageStore.setItem(key, editPendingImages[k]);
+                var base64 = await blobToBase64(editPendingImages[k]);
+                await imageStore.setItem(key, base64);
             }
             
             // 更新记录
@@ -3794,17 +3831,36 @@
             records.forEach(function(record) {
                 var family = record.species || '未分类';
                 var genus = record.genus || '未知属';
+                var speciesKey = getSpeciesKey(record.chineseName);
                 
                 if (!tree[family]) {
-                    tree[family] = new Set();
+                    tree[family] = {
+                        genuses: new Map(),
+                        speciesSet: new Set()
+                    };
                 }
-                tree[family].add(genus);
+                
+                tree[family].speciesSet.add(speciesKey);
+                
+                if (!tree[family].genuses.has(genus)) {
+                    tree[family].genuses.set(genus, new Set());
+                }
+                tree[family].genuses.get(genus).add(speciesKey);
             });
             
             return Object.keys(tree).map(function(family) {
+                var familyData = tree[family];
                 return {
                     name: family,
-                    genuses: Array.from(tree[family])
+                    speciesCount: familyData.speciesSet.size,
+                    genuses: Array.from(familyData.genuses.entries()).map(function([genus, species]) {
+                        return {
+                            name: genus,
+                            speciesCount: species.size
+                        };
+                    }).sort(function(a, b) {
+                        return a.name.localeCompare(b.name);
+                    })
                 };
             }).sort(function(a, b) {
                 return a.name.localeCompare(b.name);
@@ -3836,7 +3892,7 @@
                 
                 var familyLabel = document.createElement('label');
                 familyLabel.htmlFor = containerId + '-family-' + item.name;
-                familyLabel.textContent = item.name;
+                familyLabel.textContent = item.name + ' (' + item.speciesCount + ')';
                 
                 header.appendChild(familyCheck);
                 header.appendChild(familyLabel);
@@ -3857,15 +3913,15 @@
                     
                     var genusCheck = document.createElement('input');
                     genusCheck.type = 'checkbox';
-                    genusCheck.id = containerId + '-genus-' + item.name + '-' + genus;
-                    genusCheck.checked = selectedFilters.genuses.has(item.name + '|' + genus);
+                    genusCheck.id = containerId + '-genus-' + item.name + '-' + genus.name;
+                    genusCheck.checked = selectedFilters.genuses.has(item.name + '|' + genus.name);
                     genusCheck.addEventListener('change', async function() {
-                        await toggleGenus(item.name, genus, this.checked, containerId);
+                        await toggleGenus(item.name, genus.name, this.checked, containerId);
                     });
                     
                     var genusLabel = document.createElement('label');
-                    genusLabel.htmlFor = containerId + '-genus-' + item.name + '-' + genus;
-                    genusLabel.textContent = genus;
+                    genusLabel.htmlFor = containerId + '-genus-' + item.name + '-' + genus.name;
+                    genusLabel.textContent = genus.name + ' (' + genus.speciesCount + ')';
                     
                     genusItem.appendChild(genusCheck);
                     genusItem.appendChild(genusLabel);
@@ -3905,12 +3961,12 @@
             if (checked) {
                 selectedFilters.families.add(family);
                 genuses.forEach(function(genus) {
-                    selectedFilters.genuses.add(family + '|' + genus);
+                    selectedFilters.genuses.add(family + '|' + genus.name);
                 });
             } else {
                 selectedFilters.families.delete(family);
                 genuses.forEach(function(genus) {
-                    selectedFilters.genuses.delete(family + '|' + genus);
+                    selectedFilters.genuses.delete(family + '|' + genus.name);
                 });
             }
             await renderFilterTree(containerId);
@@ -4360,6 +4416,22 @@
                 
                 if (!statsChart) {
                     statsChart = echarts.init(chartDom);
+                    
+                    // 绑定省份点击事件（在初始化时绑定）
+                    statsChart.on('click', function(params) {
+                        if (params && params.name) {
+                            statsChart.dispatchAction({ type: 'hideTip' });
+                            statsCurrentLevel = 'city';
+                            renderCityChart(params.name);
+                        }
+                    });
+                    
+                    // 点击空白区域隐藏 tooltip
+                    statsChart.getZr().on('click', function(e) {
+                        if (!e.target) {
+                            statsChart.dispatchAction({ type: 'hideTip' });
+                        }
+                    });
                 }
                 
                 var stats = await getStatsData();
@@ -4392,8 +4464,7 @@
                 var option = {
                     tooltip: {
                         trigger: 'item',
-                        triggerOn: 'click',
-                        hideDelay: 10000,
+                        hideDelay: 1000,
                         enterable: false,
                         formatter: function(params) {
                             var provinceData = stats.provinceMap[params.name];
@@ -4402,7 +4473,7 @@
                             var tip = params.name + '<br/>';
                             tip += '物种数: ' + speciesCount + '<br/>';
                             tip += '记录数: ' + recordCount + '<br/>';
-                            tip += '<span style="font-size:10px;color:#C8D4CE">(再次点击下钻)</span>';
+                            tip += '<span style="font-size:10px;color:#C8D4CE">(点击下钻)</span>';
                             return tip;
                         },
                         backgroundColor: 'rgba(61, 74, 63, 0.95)',
@@ -4460,25 +4531,9 @@
                 // 直接使用本地内嵌的中国地图数据
                 if (window.CHINA_MAP_DATA) {
                     echarts.registerMap('china', window.CHINA_MAP_DATA);
-                    statsChart.setOption(option, true);
+                    statsChart.setOption(option);
 
-                    // 绑定省份点击事件：第一次点击只显示 tooltip，再次点击同省才下钻
-                    statsChart.off('click');
-                    statsChart.on('click', function(params) {
-                        if (params.componentType === 'series' && params.seriesType === 'map') {
-                            var provinceName = params.name;
-                            if (!provinceName) return;
-                            if (window.__tipProvince === provinceName) {
-                                // 第二次点击同省 → 下钻
-                                window.__tipProvince = null;
-                                statsCurrentLevel = 'city';
-                                renderCityChart(provinceName);
-                            } else {
-                                // 第一次点击或切换省份 → 只显示 tooltip
-                                window.__tipProvince = provinceName;
-                            }
-                        }
-                    });
+                    // 点击事件已在图表初始化时绑定
                 } else {
                     statsChart.setOption({
                         title: {
@@ -4568,7 +4623,7 @@
             var option = {
                 title: {
                     text: provinceName,
-                    left: 10,
+                    left: 'center',
                     top: 5,
                     textStyle: {
                         color: '#3D5A45',
@@ -4703,6 +4758,12 @@
             var stats = await getStatsData();
             document.getElementById('stats-total-species').textContent = stats.totalSpecies;
             document.getElementById('stats-total-records').textContent = stats.totalRecords;
+            
+            // 重置图表配置，确保完全切换回地图模式
+            if (statsChart) {
+                statsChart.dispose();
+                statsChart = null;
+            }
             
             await initStatsChart();
             setTimeout(function() {
